@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mysqladmin ping *)",
+      "Bash(where mysql *)"
+    ]
+  }
+}

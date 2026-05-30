@@ -1,0 +1,101 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body, #app {
+  height: 100%;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+  background-color: var(--bg-main, #e8e8e8);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-overflow-scrolling: touch;
+}
+
+input, textarea, select, button {
+  font-family: inherit;
+}
+
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb, #ccc);
+  border-radius: 2px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover, #bbb);
+}
+
+:root {
+  --el-color-primary: #f7931e;
+  --el-dialog-bg-color: #ffffff;
+  --el-drawer-bg-color: #ffffff;
+  --el-overlay-color: rgba(0,0,0,0.4);
+  --el-overlay-color-lighter: rgba(0,0,0,0.3);
+  --el-bg-color: #ffffff;
+  --el-text-color-primary: #1a1a1e;
+  --el-border-color: #e8ecf0;
+  --el-border-color-lighter: #e8ecf0;
+  --el-fill-color: #f0f2f5;
+  --el-fill-color-light: #f7f8fa;
+  --scrollbar-thumb: #ccc;
+  --scrollbar-thumb-hover: #bbb;
+}
+[data-theme="dark"] {
+  --el-color-primary: #f7931e;
+  --el-dialog-bg-color: #1a1d23;
+  --el-drawer-bg-color: #1a1d23;
+  --el-overlay-color: rgba(0,0,0,0.65);
+  --el-overlay-color-lighter: rgba(0,0,0,0.5);
+  --el-bg-color: #1a1d23;
+  --el-text-color-primary: #e4e6eb;
+  --el-border-color: #2e3038;
+  --el-border-color-lighter: #2e3038;
+  --el-fill-color: #2a2d35;
+  --el-fill-color-blank: #2a2d35;
+  --el-fill-color-light: #1e2028;
+  --el-input-bg-color: #2a2d35;
+  --el-input-text-color: #e4e6eb;
+  --el-input-border-color: #3a3c44;
+  --el-input-placeholder-color: #555;
+  --el-select-bg-color: #2a2d35;
+  --el-select-input-color: #e4e6eb;
+  --el-text-color-placeholder: #555;
+  --el-border-color-base: #3a3c44;
+  --scrollbar-thumb: #444;
+  --scrollbar-thumb-hover: #555;
+}
+.el-overlay { background-color: var(--el-overlay-color) !important; }
+.el-dialog { border-radius: 12px !important; }
+.el-message-box { border-radius: 12px !important; }
+
+.xr-notify {
+  border-radius: 10px !important;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.10) !important;
+}
+.xr-notify .el-notification__title {
+  display: none;
+}
+.xr-notify .el-notification__content {
+  margin: 0 !important;
+  font-size: 13px !important;
+}
+.xr-notify .el-notification__group {
+  margin-left: 12px !important;
+}
+.xr-notify.el-notification--success {
+  border-left: 3px solid #07C160 !important;
+}
+.xr-notify.el-notification--error {
+  border-left: 3px solid #e74c3c !important;
+}

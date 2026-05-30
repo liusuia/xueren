@@ -1,0 +1,12 @@
+node_modules/
+dist/
+target/
+uploads/
+*.iml
+.idea/
+.DS_Store
+*.zip
+apache-maven-3.9.6/
+.backup/
+maven.zip
+query

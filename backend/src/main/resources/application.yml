@@ -1,0 +1,40 @@
+server:
+  port: 8080
+  address: 0.0.0.0
+
+spring:
+  application:
+    name: xueren-backend
+  datasource:
+    url: jdbc:mysql://127.0.0.1:3306/xueren?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
+    username: root
+    password: xueren123
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
+
+  mvc:
+    throw-exception-if-no-handler-found: true
+  web:
+    resources:
+      add-mappings: false
+
+xueren:
+  jwt:
+    secret: xueren-jwt-secret-key-change-in-production-2026
+    access-expire-minutes: 120
+    refresh-expire-days: 7
+  upload:
+    dir: uploads
+  netty:
+    port: 8081
+    path: /ws
