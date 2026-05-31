@@ -31,6 +31,9 @@ public class User {
     @Column(length = 100)
     private String email;
 
+    @Column(name = "username_changed_at")
+    private LocalDateTime usernameChangedAt;
+
     @Column(length = 20)
     private String phone;
 

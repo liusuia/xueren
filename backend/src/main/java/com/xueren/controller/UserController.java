@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/users")
@@ -32,6 +33,11 @@ public class UserController {
     @GetMapping("/{id}")
     public ApiResponse<UserVO> getUser(@PathVariable Long id) {
         return ApiResponse.ok(userService.getById(id));
+    }
+
+    @PutMapping("/username")
+    public ApiResponse<UserVO> changeUsername(@RequestBody Map<String, String> body) {
+        return ApiResponse.ok(userService.changeUsername(AuthHolder.currentUserId(), body.get("username")));
     }
 
     @GetMapping("/search")

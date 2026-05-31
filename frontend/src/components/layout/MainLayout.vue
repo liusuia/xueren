@@ -39,7 +39,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { useUiStore } from '../../stores/ui'
 import { useAuthStore } from '../../stores/auth'
 import { useChatStore } from '../../stores/chat'
@@ -153,12 +153,24 @@ addWsListener((packet) => {
   }
 })
 
+// 名片点击 → 打开用户资料
+watch(() => ui.showUserCardId, (uid) => {
+  if (uid) { userInfoUserId.value = uid; showUserInfo.value = true; ui.closeUserCard() }
+})
+
 // 初始化数据
 onMounted(async () => {
-  convStore.fetchConversations()
+  await convStore.fetchConversations()
   contactStore.fetchFriends()
   contactStore.fetchRequests()
   groupStore.fetchGroups()
+  // 默认打开文件助手
+  const fh = convStore.list.find(c => c.targetType === 1 && c.targetId === 1)
+  if (fh && !chat.currentConv) {
+    chat.openChat(fh)
+    await chat.fetchMessages(50)
+    ui.openChat()
+  }
 })
 
 // 选会话

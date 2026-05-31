@@ -1,10 +1,10 @@
 @echo off
 chcp 65001 >nul
-title 雪人 Xueren - 一键启动
+title 轻语 - 一键启动
 
 echo.
 echo   ╔══════════════════════════════════╗
-echo   ║     雪人 Xueren 一键启动        ║
+echo   ║     轻语 一键启动        ║
 echo   ╚══════════════════════════════════╝
 echo.
 

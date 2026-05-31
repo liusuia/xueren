@@ -41,6 +41,22 @@
 
     <EmptyState v-if="!groupStore.list.length && !contactStore.friendSections.length" title="暂无好友和群聊" desc="去添加好友或创建群聊吧" />
 
+    <!-- 发送名片 - 选择会话 -->
+    <Teleport to="body">
+      <div v-if="showCardDialog" class="cd-overlay" @click="showCardDialog = false">
+        <div class="cd-dialog" @click.stop>
+          <div class="cd-hd">选择发送给</div>
+          <div class="cd-list">
+            <div v-for="c in convStore.list" :key="c.id" class="cd-item" @click="doSendCard(c)">
+              <Avatar :src="c.targetAvatar" :name="c.targetName" :size="36" />
+              <span>{{ c.targetName }}</span>
+            </div>
+            <div v-if="!convStore.list.length" class="cd-empty">暂无会话</div>
+          </div>
+        </div>
+      </div>
+    </Teleport>
+
     <ContextMenu :visible="ctxVisible" :items="ctxItems" :position="ctxPos" @close="ctxVisible = false" @action="onCtxAction" />
   </div>
 </template>
@@ -54,11 +70,13 @@ import ContextMenu from '../common/ContextMenu.vue'
 import { useContactStore } from '../../stores/contacts'
 import { useGroupStore } from '../../stores/groups'
 import { useConversationStore } from '../../stores/conversations'
+import { useChatStore } from '../../stores/chat'
 import { useConfirm } from '../../composables/useConfirm'
 
 const contactStore = useContactStore()
 const groupStore = useGroupStore()
 const convStore = useConversationStore()
+const chatStore = useChatStore()
 const cfm = useConfirm()
 const emit = defineEmits(['select', 'addFriend', 'friendRequests', 'createGroup', 'showFriendInfo', 'showGroupInfo'])
 
@@ -67,10 +85,26 @@ const ctxPos = ref({ x: 0, y: 0 })
 const ctxItems = ref([])
 let ctxTarget = null
 
+// 发送名片弹窗
+const showCardDialog = ref(false)
+const cardUser = ref(null)
+function onSendCard(user) {
+  cardUser.value = user
+  showCardDialog.value = true
+}
+async function doSendCard(conv) {
+  showCardDialog.value = false
+  const c = { targetType: conv.targetType, targetId: conv.targetId, targetName: conv.targetName, targetAvatar: conv.targetAvatar, unreadCount: 0 }
+  chatStore.openChat(c)
+  await chatStore.fetchMessages(50)
+  try { await chatStore.sendContactCard(cardUser.value) } catch {}
+}
+
 function onFriendCtx(e, friend) {
   ctxTarget = { type: 'friend', data: friend }
   ctxItems.value = [
     { label: '发消息', action: 'chat' },
+    { label: '发送名片', action: 'sendCard' },
     { label: '设置备注', action: 'remark' },
     { divider: true },
     { label: '删除好友', action: 'delete', danger: true }
@@ -97,6 +131,7 @@ async function onCtxAction(item) {
   if (ctxTarget.type === 'friend') {
     const f = ctxTarget.data
     if (item.action === 'chat') emit('select', toConv(f))
+    else if (item.action === 'sendCard') onSendCard(f)
     else if (item.action === 'remark') {
       const val = await cfm.prompt('设置备注', { inputPlaceholder: '输入备注名', inputDefault: f.remark || '' })
       if (val !== false && val !== undefined) await contactStore.updateRemark(f.userId, val)
@@ -148,4 +183,11 @@ function toGroupConv(g) {
 .cti-root { display: flex; align-items: center; gap: 12px; padding: 10px 16px; cursor: pointer; transition: background 0.12s; }
 .cti-root:hover { background: var(--bg-hover, rgba(255,255,255,0.04)); }
 .cti-name { font-size: 14px; color: var(--text-primary, #e8e8ea); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cd-overlay { position: fixed; inset: 0; z-index: 300; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; }
+.cd-dialog { width: 320px; max-height: 400px; border-radius: 12px; background: var(--bg-dialog, #252529); overflow: hidden; display: flex; flex-direction: column; }
+.cd-hd { padding: 14px 18px; font-size: 14px; font-weight: 600; color: var(--text-primary, #e8e8ea); border-bottom: 1px solid var(--border, #3a3c44); }
+.cd-list { flex: 1; overflow-y: auto; padding: 4px 0; }
+.cd-item { display: flex; align-items: center; gap: 10px; padding: 10px 18px; cursor: pointer; color: var(--text-primary, #e8e8ea); font-size: 13px; }
+.cd-item:hover { background: var(--bg-hover, rgba(255,255,255,0.06)); }
+.cd-empty { text-align: center; padding: 24px; color: var(--text-muted, #999); font-size: 13px; }
 </style>

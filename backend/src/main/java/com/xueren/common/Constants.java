@@ -21,6 +21,7 @@ public final class Constants {
     public static final int MSG_FILE = 3;
     public static final int MSG_EMOJI = 4;
     public static final int MSG_SYSTEM = 5;
+    public static final int MSG_CONTACT_CARD = 6;
 
     public static final int GROUP_ROLE_OWNER = 1;
     public static final int GROUP_ROLE_ADMIN = 2;

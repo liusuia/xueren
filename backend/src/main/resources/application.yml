@@ -4,7 +4,7 @@ server:
 
 spring:
   application:
-    name: xueren-backend
+    name: qingyu-backend
   datasource:
     url: jdbc:mysql://127.0.0.1:3306/xueren?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
     username: ${DB_USERNAME:root}
@@ -43,6 +43,17 @@ xueren:
   netty:
     port: 8081
     path: /ws
+
+  # 邮件配置（QQ邮箱示例，需在QQ邮箱设置中开启SMTP获取授权码）
+  mail:
+    host: smtp.qq.com
+    port: 587
+    username: 1037810790@qq.com
+    password: kbddmkkabyibbfcc
+    properties:
+      mail.smtp.auth: true
+      mail.smtp.starttls.enable: true
+      mail.smtp.starttls.required: true
 
 # Actuator 健康检查
 management:

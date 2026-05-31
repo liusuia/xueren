@@ -2,42 +2,76 @@
   <Teleport to="body">
     <div v-if="show" class="pp-overlay" @click="show = false; $emit('close')">
       <div class="pp-popup" :style="popStyle" @click.stop>
-        <div class="pp-top">
-          <Avatar :src="auth.user?.avatar" :name="auth.user?.nickname || auth.user?.username" :size="56" />
-          <div class="pp-name">{{ auth.user?.nickname || auth.user?.username }}</div>
-          <div class="pp-uid">@{{ auth.user?.username }}</div>
+        <!-- 头像区域 -->
+        <div class="pp-head" @click="triggerAvatar">
+          <Avatar :src="auth.user?.avatar" :name="auth.user?.nickname || auth.user?.username" :size="64" />
+          <div class="pp-camera">📷</div>
         </div>
-        <div class="pp-fields">
-          <div class="pp-field"><label>昵称</label><input v-model="form.nickname" placeholder="昵称" @blur="autoSave('nickname')" /></div>
-          <div class="pp-field"><label>邮箱</label><input v-model="form.email" placeholder="邮箱" /></div>
-          <div class="pp-field"><label>手机</label><input v-model="form.phone" placeholder="手机号" /></div>
-          <div class="pp-field"><label>生日</label><input v-model="form.birthday" placeholder="YYYY-MM-DD" /></div>
+        <input type="file" ref="avInput" accept="image/*" @change="onAvatarChange" style="display:none" />
+
+        <!-- 昵称 -->
+        <div class="pp-name-row">
+          <input v-model="form.nickname" class="pp-inp-name" placeholder="设置昵称" maxlength="30" />
         </div>
-        <div class="pp-avatar-row">
-          <button class="pp-change-av" @click="triggerAvatar">更换头像</button>
-          <input type="file" ref="avInput" accept="image/*" @change="onAvatarChange" style="display:none" />
+
+        <!-- 轻语ID -->
+        <div class="pp-id-row">
+          <span class="pp-id-label">轻语ID</span>
+          <span class="pp-id-val">{{ auth.user?.username }}</span>
+          <button class="pp-id-edit" @click="editId = !editId">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+          </button>
         </div>
-        <button class="pp-save" @click="onSave" :disabled="saving">{{ saving ? '保存中...' : '保存' }}</button>
-        <button class="pp-logout" @click="onLogout">退出登录</button>
+        <div v-if="editId" class="pp-id-edit-row">
+          <input v-model="newId" class="pp-inp-id" placeholder="新轻语ID" maxlength="20" />
+          <button class="pp-id-save" @click="saveUsername">保存</button>
+          <button class="pp-id-cancel" @click="editId = false">取消</button>
+        </div>
+        <div class="pp-id-note">一年仅可修改一次</div>
+
+        <!-- 信息列表 -->
+        <div class="pp-info-list">
+          <div class="pp-info-item">
+            <span class="pp-info-label">邮箱</span>
+            <input v-model="form.email" class="pp-inp-text" placeholder="未设置" />
+          </div>
+          <div class="pp-info-item">
+            <span class="pp-info-label">手机</span>
+            <input v-model="form.phone" class="pp-inp-text" placeholder="未设置" />
+          </div>
+          <div class="pp-info-item">
+            <span class="pp-info-label">生日</span>
+            <input v-model="form.birthday" class="pp-inp-text" placeholder="YYYY-MM-DD" />
+          </div>
+        </div>
+
+        <!-- 按钮 -->
+        <button class="pp-btn-save" @click="onSave" :disabled="saving">{{ saving ? '保存中...' : '保存' }}</button>
+        <button class="pp-btn-logout" @click="onLogout">退出登录</button>
       </div>
     </div>
   </Teleport>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import Avatar from '../common/Avatar.vue'
 import { useAuthStore } from '../../stores/auth'
+import http from '../../api/http'
 import { useConfirm } from '../../composables/useConfirm'
+import { useNotification } from '../../composables/useNotification'
 
 const auth = useAuthStore()
 const router = useRouter()
 const cfm = useConfirm()
+const { success, error: showError } = useNotification()
 const emit = defineEmits(['close'])
 const saving = ref(false)
 const show = ref(true)
 const avInput = ref(null)
+const editId = ref(false)
+const newId = ref('')
 
 const form = reactive({
   nickname: auth.user?.nickname || '',
@@ -48,7 +82,16 @@ const form = reactive({
 
 const popStyle = { position: 'fixed', left: '64px', top: '16px' }
 
-function autoSave(field) { /* 失焦不自动保存，防止频繁请求 */ }
+async function saveUsername() {
+  const val = newId.value.trim()
+  if (!val || val === auth.user?.username) { editId.value = false; return }
+  try {
+    const updated = await http.put('/users/username', { username: val })
+    auth.user = updated
+    success('轻语ID已更新')
+    editId.value = false
+  } catch (e) { showError(e.message || '修改失败') }
+}
 function triggerAvatar() { avInput.value?.click() }
 async function onAvatarChange(e) {
   const file = e.target.files[0]; if (!file) return
@@ -68,25 +111,52 @@ async function onLogout() {
 <style scoped>
 .pp-overlay { position: fixed; inset: 0; z-index: 200; }
 .pp-popup {
-  width: 280px; border-radius: 10px; background: var(--bg-dialog, #252529);
-  box-shadow: 0 8px 32px rgba(0,0,0,0.35); padding: 20px 18px 16px;
+  width: 300px; border-radius: 14px; background: var(--bg-dialog, #1e2028);
+  box-shadow: 0 12px 40px rgba(0,0,0,0.4); padding: 28px 24px 20px;
+  display: flex; flex-direction: column; align-items: center;
 }
-.pp-top { display: flex; flex-direction: column; align-items: center; gap: 4px; margin-bottom: 16px; }
-.pp-name { font-size: 16px; font-weight: 600; color: var(--text-primary, #e8e8ea); }
-.pp-uid { font-size: 12px; color: var(--text-muted, #999); }
-.pp-fields { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
-.pp-field { display: flex; justify-content: space-between; align-items: center; }
-.pp-field label { font-size: 12px; color: var(--text-muted, #999); flex-shrink: 0; width: 40px; }
-.pp-field input {
-  flex: 1; border: 1px solid var(--border, #3a3c44); border-radius: 4px;
-  padding: 5px 8px; font-size: 12px; color: var(--text-primary, #e8e8ea);
-  background: var(--bg-input, #2e3038); outline: none; max-width: 170px;
+.pp-head { position: relative; cursor: pointer; margin-bottom: 12px; }
+.pp-head:hover { opacity: 0.85; }
+.pp-camera {
+  position: absolute; bottom: 0; right: 0;
+  width: 24px; height: 24px; border-radius: 50%;
+  background: var(--bg-input, #3a3c44); font-size: 12px;
+  display: flex; align-items: center; justify-content: center;
 }
-.pp-field input:focus { border-color: var(--accent, #f7931e); }
-.pp-avatar-row { text-align: center; margin-bottom: 10px; }
-.pp-change-av { background: none; border: none; color: var(--accent, #f7931e); font-size: 12px; cursor: pointer; }
-.pp-save { width: 100%; padding: 8px; border: none; border-radius: 6px; background: var(--accent, #f7931e); color: #fff; font-size: 13px; font-weight: 600; cursor: pointer; }
-.pp-save:disabled { opacity: 0.5; }
-.pp-logout { width: 100%; padding: 8px; border: none; border-radius: 6px; background: transparent; color: #e74c3c; font-size: 12px; cursor: pointer; margin-top: 4px; }
-.pp-logout:hover { background: rgba(231,76,60,0.08); }
+.pp-name-row { width: 100%; text-align: center; margin-bottom: 12px; }
+.pp-inp-name {
+  border: none; background: transparent; font-size: 16px; font-weight: 600;
+  color: var(--text-primary, #e8e8ea); text-align: center; outline: none;
+  width: 180px; padding: 4px; border-bottom: 2px solid transparent;
+  transition: border-color 0.2s;
+}
+.pp-inp-name:focus { border-bottom-color: var(--accent, #f7931e); }
+.pp-id-row { display: flex; align-items: center; gap: 6px; margin-bottom: 2px; }
+.pp-id-label { font-size: 11px; color: var(--text-muted, #777); }
+.pp-id-val { font-size: 13px; color: var(--text-secondary, #bbb); }
+.pp-id-edit { background: none; border: none; color: var(--text-muted, #666); cursor: pointer; padding: 2px; }
+.pp-id-edit:hover { color: var(--accent, #f7931e); }
+.pp-id-edit-row { display: flex; gap: 6px; margin: 6px 0; align-items: center; }
+.pp-inp-id { flex: 1; border: 1px solid var(--border, #3a3c44); border-radius: 6px; padding: 4px 8px; font-size: 12px; color: var(--text-primary, #e8e8ea); background: var(--bg-input, #2e3038); outline: none; }
+.pp-inp-id:focus { border-color: var(--accent, #f7931e); }
+.pp-id-save { background: var(--accent, #f7931e); color: #fff; border: none; border-radius: 4px; padding: 4px 10px; font-size: 11px; cursor: pointer; }
+.pp-id-cancel { background: none; border: 1px solid var(--border, #3a3c44); color: var(--text-muted, #888); border-radius: 4px; padding: 4px 8px; font-size: 11px; cursor: pointer; }
+.pp-id-note { font-size: 10px; color: var(--text-muted, #555); margin-bottom: 16px; }
+.pp-info-list { width: 100%; border-top: 1px solid var(--border, #2e3038); padding-top: 4px; }
+.pp-info-item {
+  display: flex; align-items: center; padding: 12px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+.pp-info-label { font-size: 13px; color: var(--text-muted, #999); width: 44px; flex-shrink: 0; }
+.pp-inp-text {
+  flex: 1; border: none; background: transparent; font-size: 13px;
+  color: var(--text-primary, #e8e8ea); outline: none; padding: 2px 0;
+  text-align: right;
+}
+.pp-inp-text:focus { color: var(--accent, #f7931e); }
+.pp-btn-save { width: 100%; margin-top: 16px; padding: 10px; border: none; border-radius: 8px; background: var(--accent, #f7931e); color: #fff; font-size: 14px; font-weight: 600; cursor: pointer; transition: opacity 0.15s; }
+.pp-btn-save:hover { opacity: 0.9; }
+.pp-btn-save:disabled { opacity: 0.5; }
+.pp-btn-logout { width: 100%; margin-top: 8px; padding: 10px; border: none; border-radius: 8px; background: transparent; color: #e74c3c; font-size: 13px; cursor: pointer; }
+.pp-btn-logout:hover { background: rgba(231,76,60,0.06); }
 </style>

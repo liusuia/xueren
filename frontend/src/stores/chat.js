@@ -124,6 +124,17 @@ export const useChatStore = defineStore('chat', () => {
     }
   }
 
+  async function sendContactCard(user) {
+    if (!currentConv.value) return
+    const card = JSON.stringify({
+      userId: user.id || user.userId,
+      username: user.username,
+      nickname: user.nickname || user.username,
+      avatar: user.avatar || ''
+    })
+    return sendMessage({ content: card, msgType: 6 })
+  }
+
   async function sendMessage({ content, msgType, fileId, mentionedUserIds }) {
     if (!currentConv.value) return
     const { targetType, targetId } = currentConv.value
@@ -239,7 +250,7 @@ export const useChatStore = defineStore('chat', () => {
 
   return {
     currentConv, messages, loading, sending, jumpMsgId, replyTo, typingUser,
-    openChat, closeChat, fetchMessages, loadOlderMessages, sendMessage, recallMessage, clearHistory,
+    openChat, closeChat, fetchMessages, loadOlderMessages, sendMessage, sendContactCard, recallMessage, clearHistory,
     setReplyTo, clearReply, setTypingUser, editMsgId, editContent, startEdit, cancelEdit, submitEdit,
     multiSelect, selectedIds, toggleMultiSelect, toggleSelect, deleteSelected,
     removeMessageLocal, appendFromPush, markRecalledFromPush, sortedMessages

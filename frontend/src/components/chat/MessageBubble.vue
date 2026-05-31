@@ -25,6 +25,14 @@
       alt="图片"
     />
 
+    <!-- 名片消息 -->
+    <div v-else-if="msg.msgType == 6 && cardData" class="mb-card" @click="openCard">
+      <Avatar :src="cardData.avatar" :name="cardData.nickname || cardData.username" :size="36" />
+      <div class="mb-card-info">
+        <div class="mb-card-name">{{ cardData.nickname || cardData.username }}</div>
+        <div class="mb-card-sub">个人名片</div>
+      </div>
+    </div>
     <!-- 文件消息 -->
     <a v-else-if="msg.msgType === 3" class="mb-file" :href="msg.content || msg.fileUrl" target="_blank" download>
       <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm4 18H6V4h7v5h5v11z"/></svg>
@@ -37,7 +45,9 @@
 import { computed } from 'vue'
 
 import { useChatStore } from '../../stores/chat'
+import { useUiStore } from '../../stores/ui'
 const chat = useChatStore()
+const ui = useUiStore()
 
 const props = defineProps({
   msg: { type: Object, required: true },
@@ -45,9 +55,18 @@ const props = defineProps({
 })
 
 const msgTypeClass = computed(() => {
-  const map = { 1: 'type-text', 2: 'type-image', 3: 'type-file', 4: 'type-emoji' }
+  const map = { 1: 'type-text', 2: 'type-image', 3: 'type-file', 4: 'type-emoji', 6: 'type-card' }
   return map[props.msg.msgType] || 'type-text'
 })
+const cardData = computed(() => {
+  if (props.msg.msgType != 6 || !props.msg.content) return null
+  try { return JSON.parse(props.msg.content) } catch { return null }
+})
+function openCard() {
+  if (cardData.value?.userId) {
+    ui.openUserCard(cardData.value.userId)
+  }
+}
 </script>
 
 <style scoped>
@@ -97,4 +116,13 @@ const msgTypeClass = computed(() => {
   font-family: inherit; line-height: 1.5;
 }
 .mb-edit-hint { font-size: 10px; color: var(--text-muted, #888); margin-top: 4px; text-align: right; }
+.mb-card {
+  display: flex; align-items: center; gap: 10px; padding: 10px 14px;
+  background: var(--bubble-other, #2e3038); border-radius: 8px;
+  cursor: pointer; min-width: 180px; transition: background 0.12s;
+}
+.mb-card:hover { background: var(--bg-hover, rgba(255,255,255,0.06)); }
+.mb-card-info { min-width: 0; }
+.mb-card-name { font-size: 14px; color: var(--text-primary, #e8e8ea); font-weight: 500; }
+.mb-card-sub { font-size: 11px; color: var(--text-muted, #999); margin-top: 2px; }
 </style>

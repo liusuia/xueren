@@ -19,7 +19,7 @@
         <div class="login-logo">
           <img src="/logo.png" alt="logo" class="login-logo-img" />
         </div>
-        <div class="login-title">雪人 Xueren</div>
+        <div class="login-title">轻语</div>
         <div class="login-subtitle">即时通讯</div>
       </div>
 
@@ -35,7 +35,7 @@
             <div class="input-icon">
               <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
             </div>
-            <input v-model="loginForm.username" placeholder="用户名" class="login-input" autocomplete="username" />
+            <input v-model="loginForm.username" placeholder="轻语号/邮箱" class="login-input" autocomplete="username" />
           </div>
           <div class="input-group">
             <div class="input-icon">
@@ -47,14 +47,15 @@
             <span v-if="loading" class="btn-loading"></span>
             <span v-else>登 录</span>
           </button>
+          <div class="forgot-link" @click="forgotStep = 1">忘记密码</div>
         </form>
 
         <form v-show="tab === 'register'" @submit.prevent="onRegister">
           <div class="input-group">
             <div class="input-icon">
-              <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
             </div>
-            <input v-model="registerForm.username" placeholder="用户名" class="login-input" autocomplete="username" />
+            <input v-model="registerForm.email" placeholder="邮箱（选填）" class="login-input" autocomplete="email" />
           </div>
           <div class="input-group">
             <div class="input-icon">
@@ -75,8 +76,27 @@
         </form>
       </div>
 
+      <!-- 忘记密码 -->
+      <div v-if="forgotStep > 0" class="forgot-overlay" @click.self="forgotStep = 0">
+        <div class="forgot-card" @click.stop>
+          <div class="forgot-hd">{{ forgotStep === 1 ? '找回密码' : '重置密码' }}</div>
+          <!-- 第一步：输入邮箱 -->
+          <template v-if="forgotStep === 1">
+            <input v-model="forgotForm.email" placeholder="注册邮箱" class="login-input" style="margin-bottom:12px" />
+            <button class="login-btn" @click="onForgot" :disabled="loading">获取验证码</button>
+          </template>
+          <!-- 第二步：输入验证码和新密码 -->
+          <template v-if="forgotStep === 2">
+            <input v-model="forgotForm.code" placeholder="6位验证码" class="login-input" style="margin-bottom:8px" maxlength="6" />
+            <input v-model="forgotForm.password" type="password" placeholder="新密码（至少6位）" class="login-input" style="margin-bottom:12px" />
+            <button class="login-btn" @click="onReset" :disabled="loading">重置密码</button>
+          </template>
+          <div class="forgot-cancel" @click="forgotStep = 0">返回登录</div>
+        </div>
+      </div>
+
       <div class="login-footer">
-        <span>雪人 Xueren &mdash; 即时通讯</span>
+        <span>轻语 &mdash; 即时通讯</span>
       </div>
     </div>
   </div>
@@ -86,6 +106,7 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
+import http from '../api/http'
 import { useNotification } from '../composables/useNotification'
 
 const router = useRouter()
@@ -95,7 +116,9 @@ const tab = ref('login')
 const loading = ref(false)
 
 const loginForm = ref({ username: '', password: '' })
-const registerForm = ref({ username: '', password: '', nickname: '' })
+const registerForm = ref({ email: '', password: '', nickname: '' })
+const forgotStep = ref(0) // 0=hidden, 1=输入邮箱, 2=输入验证码+新密码
+const forgotForm = ref({ email: '', code: '', password: '' })
 
 const theme = ref(localStorage.getItem('xr-theme') || 'dark')
 function applyTheme(val) { document.documentElement.setAttribute('data-theme', val) }
@@ -121,7 +144,7 @@ async function onLogin() {
 }
 
 async function onRegister() {
-  if (!registerForm.value.username.trim() || !registerForm.value.nickname.trim() || !registerForm.value.password) {
+  if (!registerForm.value.nickname.trim() || !registerForm.value.password) {
     showError('请填写所有字段'); return
   }
   if (registerForm.value.password.length < 6) {
@@ -135,6 +158,28 @@ async function onRegister() {
   } catch (e) {
     showError(e.message || '注册失败')
   } finally { loading.value = false }
+}
+
+async function onForgot() {
+  if (!forgotForm.value.email.trim()) { showError('请输入注册邮箱'); return }
+  loading.value = true
+  try {
+    await http.post('/auth/forgot-password', { email: forgotForm.value.email.trim() })
+    forgotStep.value = 2
+    success('验证码已发送至邮箱，请查收')
+  } catch (e) { showError(e.message || '发送失败') }
+  finally { loading.value = false }
+}
+async function onReset() {
+  if (!forgotForm.value.code.trim() || !forgotForm.value.password.trim()) { showError('请填写完整'); return }
+  if (forgotForm.value.password.length < 6) { showError('密码至少6位'); return }
+  loading.value = true
+  try {
+    await http.post('/auth/reset-password', forgotForm.value)
+    success('密码已重置，请登录')
+    forgotStep.value = 0
+  } catch (e) { showError(e.message || '重置失败') }
+  finally { loading.value = false }
 }
 </script>
 
@@ -212,4 +257,11 @@ async function onRegister() {
 .login-footer { padding: 22px 24px 28px; text-align: center; font-size: 11px; color: var(--text-muted, #777); letter-spacing: 1px; }
 .login-logo { overflow: hidden; }
 .login-logo-img { width: 100%; height: 100%; object-fit: cover; }
+.forgot-link { text-align: right; font-size: 12px; color: var(--text-muted, #999); cursor: pointer; margin-top: 4px; }
+.forgot-link:hover { color: var(--accent, #f7931e); }
+.forgot-overlay { position: fixed; inset: 0; z-index: 300; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; }
+.forgot-card { width: 320px; border-radius: 12px; background: var(--bg-dialog, #252529); padding: 28px 24px; text-align: center; }
+.forgot-hd { font-size: 16px; font-weight: 600; color: var(--text-primary, #e8e8ea); margin-bottom: 16px; }
+.forgot-cancel { font-size: 12px; color: var(--text-muted, #999); cursor: pointer; margin-top: 10px; }
+.forgot-cancel:hover { color: var(--accent, #f7931e); }
 </style>

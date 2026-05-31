@@ -96,6 +96,27 @@ public class UserService {
         return toVOWithOnline(user);
     }
 
+    @Transactional
+    public UserVO changeUsername(Long userId, String newUsername) {
+        if (newUsername == null || newUsername.isBlank() || newUsername.length() < 2) {
+            throw new BusinessException("轻语ID长度至少2位");
+        }
+        User user = requireUser(userId);
+        // 一年内只能改一次
+        if (user.getUsernameChangedAt() != null &&
+                user.getUsernameChangedAt().plusYears(1).isAfter(LocalDateTime.now())) {
+            throw new BusinessException("轻语ID一年内只能修改一次，请于 " +
+                user.getUsernameChangedAt().plusYears(1).toLocalDate() + " 后再试");
+        }
+        if (userRepository.existsByUsername(newUsername.trim())) {
+            throw new BusinessException("该ID已被使用");
+        }
+        user.setUsername(newUsername.trim());
+        user.setUsernameChangedAt(LocalDateTime.now());
+        userRepository.save(user);
+        return toVOWithOnline(user);
+    }
+
     public static UserVO toVO(User user) {
         return UserVO.builder()
                 .id(user.getId())

@@ -5,10 +5,13 @@ import com.xueren.config.JwtProperties;
 import com.xueren.dto.*;
 import com.xueren.entity.User;
 import com.xueren.entity.UserToken;
+import com.xueren.entity.Friend;
+import com.xueren.repository.FriendRepository;
 import com.xueren.repository.UserRepository;
 import com.xueren.repository.UserTokenRepository;
 import com.xueren.security.JwtUtil;
 import com.xueren.security.LoginRateLimiter;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,6 +32,9 @@ public class AuthService {
     private final JwtUtil jwtUtil;
     private final JwtProperties jwtProperties;
     private final UserService userService;
+    private final FriendRepository friendRepository;
+    private final JdbcTemplate jdbcTemplate;
+    private final MailService mailService;
     private final SecureRandom secureRandom = new SecureRandom();
     private final LoginRateLimiter loginRateLimiter = new LoginRateLimiter();
 
@@ -37,33 +43,45 @@ public class AuthService {
                        PasswordEncoder passwordEncoder,
                        JwtUtil jwtUtil,
                        JwtProperties jwtProperties,
-                       UserService userService) {
+                       UserService userService,
+                       FriendRepository friendRepository,
+                       JdbcTemplate jdbcTemplate,
+                       MailService mailService) {
         this.userRepository = userRepository;
         this.userTokenRepository = userTokenRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtUtil = jwtUtil;
         this.jwtProperties = jwtProperties;
         this.userService = userService;
+        this.friendRepository = friendRepository;
+        this.jdbcTemplate = jdbcTemplate;
+        this.mailService = mailService;
     }
 
     @Transactional
     public AuthResponse register(RegisterRequest request) {
-        if (request.getUsername() == null || request.getUsername().isBlank()) {
-            throw new BusinessException("请输入用户名");
-        }
         if (request.getPassword() == null || request.getPassword().length() < 6) {
             throw new BusinessException("密码长度至少6位");
         }
-        if (userRepository.existsByUsername(request.getUsername().trim())) {
-            throw new BusinessException("该用户名已被注册，请换一个");
-        }
         User user = new User();
-        user.setUsername(request.getUsername().trim());
+        // 自动生成唯一轻语号
+        String autoId = generateQingyuId();
+        user.setUsername(autoId);
+        user.setEmail(request.getEmail() != null ? request.getEmail().trim() : null);
         user.setPassword(passwordEncoder.encode(request.getPassword()));
         user.setNickname(request.getNickname() != null && !request.getNickname().isBlank()
-                ? request.getNickname().trim() : request.getUsername().trim());
+                ? request.getNickname().trim() : autoId);
         userRepository.save(user);
+        createFileHelperFriendship(user.getId());
         return buildAuthResponse(user);
+    }
+
+    private void createFileHelperFriendship(Long userId) {
+        Long fid = 1L; if (userId.equals(fid)) return;
+        if (friendRepository.findByUserIdAndFriendId(userId, fid).isEmpty()) {
+            Friend f = new Friend(); f.setUserId(userId); f.setFriendId(fid);
+            f.setRequesterId(fid); f.setStatus(1); friendRepository.save(f);
+        }
     }
 
     @Transactional
@@ -75,24 +93,56 @@ public class AuthService {
             throw new BusinessException("请输入密码");
         }
 
-        String username = request.getUsername().trim();
-        // 限流检查：连续失败5次锁定15分钟
-        if (loginRateLimiter.isLocked(username)) {
+        String account = request.getUsername().trim(); // 用户名或邮箱
+        if (loginRateLimiter.isLocked(account)) {
             throw new BusinessException("登录失败次数过多，请15分钟后再试");
         }
 
-        // 统一错误消息，防止用户枚举
-        User user = userRepository.findByUsername(username).orElse(null);
+        // 支持用户名或邮箱登录
+        User user;
+        if (account.contains("@")) {
+            user = userRepository.findFirstByEmail(account).orElse(null);
+        } else {
+            user = userRepository.findByUsername(account).orElse(null);
+        }
         if (user == null || !passwordEncoder.matches(request.getPassword(), user.getPassword())) {
-            loginRateLimiter.recordFailure(username);
+            loginRateLimiter.recordFailure(account);
             throw new BusinessException("用户名或密码错误");
         }
 
-        // 登录成功，清除失败记录
-        loginRateLimiter.clear(username);
+        loginRateLimiter.clear(account);
         user.setLastOnlineAt(LocalDateTime.now());
         userRepository.save(user);
         return buildAuthResponse(user);
+    }
+
+    @Transactional
+    public String forgotPassword(String email) {
+        User user = userRepository.findFirstByEmail(email)
+                .orElseThrow(() -> new BusinessException("该邮箱未注册"));
+        String code = String.format("%06d", secureRandom.nextInt(1000000));
+        jdbcTemplate.update(
+            "INSERT INTO password_reset (email, code, expires_at) VALUES (?, ?, ?)",
+            email, code, LocalDateTime.now().plusMinutes(10));
+        mailService.sendResetCode(email, code);
+        return code;
+    }
+
+    @Transactional
+    public void resetPassword(String email, String code, String newPassword) {
+        if (newPassword == null || newPassword.length() < 6) {
+            throw new BusinessException("密码长度至少6位");
+        }
+        var row = jdbcTemplate.queryForMap(
+            "SELECT id FROM password_reset WHERE email=? AND code=? AND used=0 AND expires_at>? ORDER BY id DESC LIMIT 1",
+            email, code, LocalDateTime.now());
+        if (row == null || row.isEmpty()) {
+            throw new BusinessException("验证码无效或已过期");
+        }
+        jdbcTemplate.update("UPDATE password_reset SET used=1 WHERE id=?", row.get("id"));
+        User user = userRepository.findFirstByEmail(email).get();
+        user.setPassword(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
     }
 
     @Transactional
@@ -135,6 +185,16 @@ public class AuthService {
         userToken.setExpiresAt(LocalDateTime.now().plusDays(jwtProperties.getRefreshExpireDays()));
         userTokenRepository.save(userToken);
         return refreshToken;
+    }
+
+    private String generateQingyuId() {
+        String id;
+        do {
+            byte[] bytes = new byte[5];
+            secureRandom.nextBytes(bytes);
+            id = "qy_" + HexFormat.of().formatHex(bytes);
+        } while (userRepository.existsByUsername(id));
+        return id;
     }
 
     private String sha256(String value) {

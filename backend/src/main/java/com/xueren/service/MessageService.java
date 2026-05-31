@@ -268,7 +268,7 @@ public class MessageService {
     }
 
     private String resolveContent(SendMessageRequest request) {
-        if (request.getMsgType() == Constants.MSG_TEXT || request.getMsgType() == Constants.MSG_EMOJI) {
+        if (request.getMsgType() == Constants.MSG_TEXT || request.getMsgType() == Constants.MSG_EMOJI || request.getMsgType() == Constants.MSG_CONTACT_CARD) {
             if (request.getContent() == null || request.getContent().isBlank()) {
                 throw new BusinessException("消息内容不能为空");
             }

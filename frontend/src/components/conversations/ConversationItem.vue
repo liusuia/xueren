@@ -1,7 +1,10 @@
 <template>
   <div class="ci-root" :class="{ active }">
     <div class="ci-avatar">
-      <Avatar
+      <div v-if="isFileHelper" class="ci-fh-avatar">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="#f7931e"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm4 18H6V4h7v5h5v11z"/></svg>
+      </div>
+      <Avatar v-else
         :src="conv.targetAvatar"
         :name="displayName"
         :size="44"
@@ -48,7 +51,9 @@ const convStore = useConversationStore()
 const muted = computed(() => convStore.isMuted(props.conv.targetType, props.conv.targetId))
 const pinned = computed(() => convStore.isPinned(props.conv.targetType, props.conv.targetId))
 
+const isFileHelper = computed(() => props.conv.targetType === 1 && props.conv.targetId === 1)
 const displayName = computed(() => {
+  if (isFileHelper.value) return '文件助手'
   if (props.conv.targetType === 1) {
     const f = contactStore.friends.find(x => x.userId === props.conv.targetId)
     if (f) return f.remark || f.nickname || props.conv.targetName
@@ -73,6 +78,7 @@ const displayName = computed(() => {
   border-left-color: var(--accent, #f7931e);
 }
 .ci-avatar { flex-shrink: 0; }
+.ci-fh-avatar { width: 44px; height: 44px; border-radius: 10px; background: rgba(247,147,30,0.15); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 .ci-body { flex: 1; min-width: 0; }
 .ci-top { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px; }
 .ci-name {

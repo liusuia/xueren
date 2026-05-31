@@ -1,5 +1,5 @@
 #!/bin/bash
-# 雪人 Xueren - 一键启动 (Bash / Git Bash / WSL)
+# 轻语 - 一键启动 (Bash / Git Bash / WSL)
 
 set -e
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -10,7 +10,7 @@ SERVICE_NAME="MySQL92"
 
 echo ""
 echo "  ╔══════════════════════════════════╗"
-echo "  ║     雪人 Xueren 一键启动        ║"
+echo "  ║     轻语 一键启动        ║"
 echo "  ╚══════════════════════════════════╝"
 echo ""
 

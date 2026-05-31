@@ -42,5 +42,10 @@ export const useUiStore = defineStore('ui', () => {
     column2Width.value = Math.max(200, Math.min(500, width))
   }
 
-  return { activeTab, isChatOpen, theme, column2Width, setActiveTab, openChat, closeChat, toggleTheme, setTheme, resizeColumn2 }
+  // 名片点击 → 查看用户资料
+  const showUserCardId = ref(null)
+  function openUserCard(uid) { showUserCardId.value = uid }
+  function closeUserCard() { showUserCardId.value = null }
+
+  return { activeTab, isChatOpen, theme, column2Width, showUserCardId, setActiveTab, openChat, closeChat, toggleTheme, setTheme, resizeColumn2, openUserCard, closeUserCard }
 })

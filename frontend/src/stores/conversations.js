@@ -43,8 +43,12 @@ export const useConversationStore = defineStore('conversations', () => {
     loading.value = true
     try {
       const raw = await convApi.list()
-      // 置顶的排前面
       raw.sort((a, b) => {
+        // 文件助手永远在最前
+        const aFH = a.targetType === 1 && a.targetId === 1
+        const bFH = b.targetType === 1 && b.targetId === 1
+        if (aFH !== bFH) return aFH ? -1 : 1
+        // 置顶的排前面
         const pa = pinnedSet.has(a.targetType + '_' + a.targetId) ? 1 : 0
         const pb = pinnedSet.has(b.targetType + '_' + b.targetId) ? 1 : 0
         if (pa !== pb) return pb - pa

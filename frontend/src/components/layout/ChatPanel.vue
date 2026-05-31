@@ -14,7 +14,7 @@
         </div>
       </div>
       <div class="cp-h-right">
-        <button v-if="chat.currentConv.targetType === 2" class="cp-h-btn" @click="$emit('groupInfo')" title="群信息">
+        <button v-if="chat.currentConv.targetType === 2 && chat.currentConv.targetId !== 1" class="cp-h-btn" @click="$emit('groupInfo')" title="群信息">
           <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></svg>
         </button>
         <button v-if="chat.currentConv.targetType === 1" class="cp-h-btn" @click="$emit('friendInfo', chat.currentConv.targetId)" title="聊天信息">
@@ -59,12 +59,9 @@
   <!-- 空状态 -->
   <div v-else class="cp-empty">
     <div class="cp-empty-logo">
-      <svg viewBox="0 0 100 100" width="48" height="48" fill="#fff">
-        <path d="M50 8C35 8 22 18 18 32c-2 7-1 14 2 20l-8 20c-1 2 0 4 2 5l14 6c3 1 6 0 8-2l2-3c5 3 10 4 16 4s10-1 15-4l2 3c2 2 5 3 8 2l14-6c2-1 3-3 2-5l-8-20c3-6 4-13 2-20C78 18 65 8 50 8z"/>
-        <path d="M50 20c-8 0-14 6-14 14 0 3 1 5 2 8l-6 15c-1 2 0 3 1 4l8 3c2 1 4 0 5-1l1-2c3 2 7 3 11 3s7-1 10-3l1 2c1 1 3 2 5 1l8-3c1-1 2-2 1-4l-6-15c1-3 2-5 2-8 0-8-6-14-14-14z" fill="#f7931e" opacity="0.85"/>
-      </svg>
+      <img src="/logo.png" alt="logo" class="cp-empty-img" />
     </div>
-    <div class="cp-empty-title">雪人 Xueren</div>
+    <div class="cp-empty-title">轻语</div>
     <div class="cp-empty-sub">选择一个会话开始聊天</div>
   </div>
 </template>
@@ -199,8 +196,9 @@ async function onDrop(e) {
   width: 80px; height: 80px; border-radius: 50%;
   background: linear-gradient(135deg, #f7931e 0%, #e67e22 100%);
   display: flex; align-items: center; justify-content: center;
-  margin-bottom: 16px; opacity: 0.7;
+  margin-bottom: 16px; overflow: hidden;
 }
+.cp-empty-img { width: 100%; height: 100%; object-fit: cover; }
 .cp-empty-title { font-size: 18px; color: var(--text-secondary, #bbb); margin-bottom: 4px; }
 .cp-empty-sub { font-size: 13px; }
 </style>
