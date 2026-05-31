@@ -1,7 +1,19 @@
 <template>
   <div class="mb-root" :class="[msgTypeClass, { self: isSelf, optimistic: msg._optimistic }]">
+    <!-- 引用消息 -->
+    <div v-if="msg.replyToId" class="mb-reply">
+      <span class="mb-reply-preview">{{ msg.replyToPreview || '[消息]' }}</span>
+    </div>
+    <!-- 编辑模式 -->
+    <div v-if="chat.editMsgId === msg.id" class="mb-edit-wrap">
+      <textarea v-model="chat.editContent" class="mb-edit-input" @keydown.enter.exact.prevent="chat.submitEdit()" @keydown.escape="chat.cancelEdit()" rows="2"></textarea>
+      <div class="mb-edit-hint">Enter 保存 · Esc 取消</div>
+    </div>
     <!-- 文字消息 -->
-    <div v-if="msg.msgType === 1 || msg.msgType === 4" class="mb-text" v-text="msg.content"></div>
+    <div v-else-if="msg.msgType === 1 || msg.msgType === 4" class="mb-text">
+      {{ msg.content }}
+      <span v-if="msg.editedAt" class="mb-edited">已编辑</span>
+    </div>
 
     <!-- 图片消息 -->
     <img
@@ -23,6 +35,9 @@
 
 <script setup>
 import { computed } from 'vue'
+
+import { useChatStore } from '../../stores/chat'
+const chat = useChatStore()
 
 const props = defineProps({
   msg: { type: Object, required: true },
@@ -54,6 +69,12 @@ const msgTypeClass = computed(() => {
   background: transparent !important;
 }
 .mb-root.optimistic .mb-text { opacity: 0.7; }
+.mb-reply {
+  padding: 6px 10px; margin-bottom: 2px; font-size: 12px; color: var(--text-muted, #999);
+  background: rgba(0,0,0,0.2); border-left: 3px solid var(--accent, #f7931e);
+  border-radius: 4px; max-width: 300px;
+}
+.mb-reply-preview { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block; }
 .mb-img {
   max-width: 240px; max-height: 320px; border-radius: 8px;
   cursor: pointer; display: block; object-fit: cover;
@@ -67,4 +88,13 @@ const msgTypeClass = computed(() => {
 }
 .mb-file:hover { background: var(--bg-hover, rgba(255,255,255,0.06)); }
 .mb-file-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 160px; }
+.mb-edited { font-size: 10px; color: var(--text-muted, #999); margin-left: 6px; opacity: 0.7; }
+.mb-edit-wrap { min-width: 200px; }
+.mb-edit-input {
+  width: 100%; padding: 8px 12px; border: 2px solid var(--accent, #f7931e);
+  border-radius: 8px; background: var(--bg-dialog, #252529);
+  color: var(--text-primary, #e8e8ea); font-size: 14px; resize: none; outline: none;
+  font-family: inherit; line-height: 1.5;
+}
+.mb-edit-hint { font-size: 10px; color: var(--text-muted, #888); margin-top: 4px; text-align: right; }
 </style>

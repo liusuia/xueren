@@ -82,6 +82,7 @@ public class MessageService {
         message.setFromUserId(userId);
         message.setMsgType(request.getMsgType());
         message.setFileId(request.getFileId());
+        message.setReplyToId(request.getReplyToId());
         message.setIsRecalled(0);
 
         // 存储@提及的用户ID
@@ -253,6 +254,19 @@ public class MessageService {
         }
     }
 
+    private String buildReplyPreview(Message reply) {
+        if (reply.getContent() != null && !reply.getContent().isBlank()) {
+            String text = reply.getContent();
+            return text.length() > 50 ? text.substring(0, 50) + "..." : text;
+        }
+        return switch (reply.getMsgType() != null ? reply.getMsgType() : 1) {
+            case 2 -> "[图片]";
+            case 3 -> "[文件]";
+            case 4 -> "[表情]";
+            default -> "[消息]";
+        };
+    }
+
     private String resolveContent(SendMessageRequest request) {
         if (request.getMsgType() == Constants.MSG_TEXT || request.getMsgType() == Constants.MSG_EMOJI) {
             if (request.getContent() == null || request.getContent().isBlank()) {
@@ -294,6 +308,17 @@ public class MessageService {
                 fileUrl = file.getStoredPath();
             }
         }
+        // 回复引用信息
+        String replyToPreview = null;
+        if (message.getReplyToId() != null) {
+            Message reply = messageRepository.findById(message.getReplyToId()).orElse(null);
+            if (reply != null && reply.getIsRecalled() != null && reply.getIsRecalled() == 1) {
+                replyToPreview = "[消息已撤回]";
+            } else if (reply != null) {
+                replyToPreview = buildReplyPreview(reply);
+            }
+        }
+
         List<Long> mentionedUserIds = null;
         if (message.getMentionUserIds() != null && !message.getMentionUserIds().isBlank()) {
             mentionedUserIds = java.util.Arrays.stream(message.getMentionUserIds().split(","))
@@ -314,7 +339,10 @@ public class MessageService {
                 .msgType(message.getMsgType())
                 .fileId(message.getIsRecalled() != null && message.getIsRecalled() == 1 ? null : message.getFileId())
                 .fileUrl(message.getIsRecalled() != null && message.getIsRecalled() == 1 ? null : fileUrl)
+                .replyToId(message.getReplyToId())
+                .replyToPreview(replyToPreview)
                 .isRecalled(message.getIsRecalled())
+                .editedAt(message.getEditedAt())
                 .createdAt(message.getCreatedAt())
                 .mentionedUserIds(mentionedUserIds)
                 .build();
@@ -361,6 +389,28 @@ public class MessageService {
     }
 
     /** 隐藏单条消息（仅对自己不可见，不删除数据库记录） */
+    @Transactional
+    public MessageVO editMessage(Long userId, Long messageId, String newContent) {
+        Message message = messageRepository.findById(messageId)
+                .orElseThrow(() -> new BusinessException("消息不存在"));
+        if (!message.getFromUserId().equals(userId)) {
+            throw new BusinessException("只能编辑自己的消息");
+        }
+        if (message.getIsRecalled() != null && message.getIsRecalled() == 1) {
+            throw new BusinessException("已撤回的消息无法编辑");
+        }
+        if (newContent == null || newContent.isBlank()) {
+            throw new BusinessException("内容不能为空");
+        }
+        message.setContent(newContent);
+        message.setEditedAt(LocalDateTime.now());
+        messageRepository.save(message);
+        MessageVO vo = toVO(message);
+        // WebSocket 推送编辑后的消息给所有参与者
+        messagePushService.pushMessageEdited(vo);
+        return vo;
+    }
+
     @Transactional
     public void hideMessage(Long userId, Long messageId) {
         Message message = messageRepository.findById(messageId)

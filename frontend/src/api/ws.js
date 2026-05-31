@@ -119,6 +119,11 @@ export function sendChat(data) {
   socket.send(JSON.stringify({ type: 'CHAT', data }))
 }
 
+export function sendTyping(data) {
+  if (!socket || socket.readyState !== WebSocket.OPEN) return
+  socket.send(JSON.stringify({ type: 'TYPING', data }))
+}
+
 // 接收到的 packet 已经是 JSON.parse 后的对象，调用方不要再 parse
 export function addWsListener(fn) {
   listeners.push(fn)

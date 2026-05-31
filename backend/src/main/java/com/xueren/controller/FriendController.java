@@ -33,7 +33,7 @@ public class FriendController {
 
     @PostMapping("/request")
     public ApiResponse<Void> sendRequest(@Valid @RequestBody FriendActionRequest request) {
-        friendService.sendRequest(AuthHolder.currentUserId(), request.getFriendId());
+        friendService.sendRequest(AuthHolder.currentUserId(), request.getFriendId(), request.getVerificationMsg());
         return ApiResponse.ok("好友申请已发送", null);
     }
 

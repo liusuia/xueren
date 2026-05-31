@@ -7,14 +7,25 @@
         <div v-if="showDateSep(idx)" class="ml-date-sep">
           <span>{{ formatFullTime(msg.createdAt) }}</span>
         </div>
-        <div :id="'msg-' + msg.id" @contextmenu.prevent="onMsgCtx($event, msg)">
+        <div :id="'msg-' + msg.id" @contextmenu.prevent="onMsgCtx($event, msg)" :class="{ 'ml-msg-sel': chatStore.selectedIds.has(msg.id) }" @click="chatStore.multiSelect && chatStore.toggleSelect(msg.id)">
+          <div v-if="chatStore.multiSelect" class="ml-check">
+            <svg v-if="chatStore.selectedIds.has(msg.id)" viewBox="0 0 24 24" width="18" height="18" fill="#07C160"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+            <svg v-else viewBox="0 0 24 24" width="18" height="18" fill="currentColor" opacity="0.3"><path d="M19 5v14H5V5h14m0-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"/></svg>
+          </div>
           <MessageItem :msg="msg" :isGroup="isGroup" @userClick="$emit('userClick', $event)" />
         </div>
       </template>
       <div ref="bottomRef"></div>
     </div>
+    <!-- 多选底栏 -->
+    <div v-if="chatStore.multiSelect" class="ml-ms-bar">
+      <button class="ml-ms-cancel" @click="chatStore.toggleMultiSelect()">取消</button>
+      <span class="ml-ms-count">已选 {{ chatStore.selectedIds.size }} 条</span>
+      <button class="ml-ms-del" :disabled="!chatStore.selectedIds.size" @click="chatStore.deleteSelected()">删除</button>
+    </div>
+
     <!-- 滚动到底部 -->
-    <button v-if="showScrollBtn" class="ml-scroll-btn" @click="scrollToBottom">
+    <button v-if="showScrollBtn && !chatStore.multiSelect" class="ml-scroll-btn" @click="scrollToBottom">
       <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/></svg>
     </button>
 
@@ -69,7 +80,18 @@ function onMsgCtx(e, msg) {
   const isMyMsg = myId > 0 && msgFromId === myId
   const isRecalled = msg.isRecalled === 1 || msg.isRecalled === true
   const items = []
-  // 自己的消息且未撤回：显示撤回按钮（时限由后端校验）
+  // 多选
+  items.push({ label: '多选', action: 'multiSelect' })
+  // 引用回复（任何非撤回消息都可回复）
+  if (!isRecalled) {
+    items.push({ label: '回复', action: 'reply' })
+  }
+  // 自己的文字消息可编辑
+  const isText = msg.msgType === 1 || msg.msgType === 4
+  if (isMyMsg && !isRecalled && isText) {
+    items.push({ label: '编辑', action: 'edit' })
+  }
+  // 自己的消息且未撤回：显示撤回按钮
   if (isMyMsg && !isRecalled) {
     items.push({ label: '撤回', action: 'recall' })
   }
@@ -91,6 +113,12 @@ async function onMsgCtxAction(item) {
     try {
       await chatStore.recallMessage(ctxMsg.id)
     } catch { /* 后端已校验 */ }
+  } else if (item.action === 'reply') {
+    chatStore.setReplyTo(ctxMsg)
+  } else if (item.action === 'multiSelect') {
+    chatStore.toggleMultiSelect()
+  } else if (item.action === 'edit') {
+    chatStore.startEdit(ctxMsg.id, ctxMsg.content)
   }
 }
 
@@ -175,4 +203,16 @@ watch(() => chatStore.jumpMsgId, (msgId) => {
   0%, 100% { background: transparent; }
   50% { background: rgba(247,147,30,0.15); border-radius: 6px; }
 }
+.ml-check { width: 24px; flex-shrink: 0; display: flex; align-items: center; cursor: pointer; }
+.ml-msg-sel { background: rgba(7,193,96,0.08); border-radius: 6px; }
+.ml-ms-bar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 16px; background: var(--bg-dialog, #252529);
+  border-top: 1px solid var(--border, #3a3c44);
+  flex-shrink: 0;
+}
+.ml-ms-cancel { background: none; border: none; color: var(--text-muted, #888); font-size: 13px; cursor: pointer; }
+.ml-ms-count { font-size: 13px; color: var(--text-primary, #e8e8ea); }
+.ml-ms-del { padding: 6px 20px; border: none; border-radius: 4px; background: #e74c3c; color: #fff; font-size: 13px; cursor: pointer; }
+.ml-ms-del:disabled { opacity: 0.4; cursor: not-allowed; }
 </style>

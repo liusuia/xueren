@@ -1,8 +1,17 @@
 <template>
   <div class="login-page" :class="theme">
-    <div class="theme-toggle" @click="toggleTheme" :title="theme === 'dark' ? '白天模式' : '夜间模式'">
-      <svg v-if="theme === 'dark'" viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M12 7c-2.76 0-5 2.24-5 5s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5zM2 13h2c.55 0 1-.45 1-1s-.45-1-1-1H2c-.55 0-1 .45-1 1s.45 1 1 1zm18 0h2c.55 0 1-.45 1-1s-.45-1-1-1h-2c-.55 0-1 .45-1 1s.45 1 1 1z"/></svg>
-      <svg v-else viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9c0-.46-.04-.92-.1-1.36-.98 1.37-2.58 2.26-4.4 2.26-3.03 0-5.5-2.47-5.5-5.5 0-1.82.89-3.42 2.26-4.4-.44-.06-.9-.1-1.36-.1z"/></svg>
+    <div class="theme-toggle" @click="toggleTheme" :title="theme === 'dark' ? '切换白天模式' : '切换夜间模式'">
+      <!-- 夜间 → 月亮+星星（点击切白天） -->
+      <svg v-if="theme === 'dark'" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+        <circle cx="17" cy="5" r="1.2" fill="currentColor" stroke="none"/>
+        <circle cx="7" cy="17" r="0.8" fill="currentColor" stroke="none"/>
+      </svg>
+      <!-- 白天 → 太阳+光芒 -->
+      <svg v-else viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="5"/>
+        <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+      </svg>
     </div>
 
     <div class="login-card">

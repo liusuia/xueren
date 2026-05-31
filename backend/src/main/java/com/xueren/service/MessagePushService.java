@@ -40,9 +40,17 @@ public class MessagePushService {
         }
     }
 
+    public void pushMessageEdited(MessageVO message) {
+        pushToParticipants(message, "MESSAGE_EDITED");
+    }
+
     public void pushRecall(MessageVO message) {
+        pushToParticipants(message, "MESSAGE_RECALLED");
+    }
+
+    private void pushToParticipants(MessageVO message, String type) {
         WsPacket packet = new WsPacket();
-        packet.setType("MESSAGE_RECALLED");
+        packet.setType(type);
         packet.setData(message);
         String json = toJson(packet);
         if (json == null) {

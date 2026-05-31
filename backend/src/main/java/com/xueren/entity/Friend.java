@@ -27,6 +27,9 @@ public class Friend {
 
     private Integer status;
 
+    @Column(name = "verification_msg", length = 100)
+    private String verificationMsg;
+
     @Column(length = 50)
     private String remark;
 

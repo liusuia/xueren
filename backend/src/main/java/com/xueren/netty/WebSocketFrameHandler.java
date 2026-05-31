@@ -1,6 +1,6 @@
 package com.xueren.netty;
 
-import java.util.List;
+import java.util.*;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -10,6 +10,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.xueren.dto.SendMessageRequest;
 import com.xueren.security.JwtUtil;
+import com.xueren.service.GroupService;
 import com.xueren.service.MessageService;
 
 import io.netty.channel.ChannelHandlerContext;
@@ -28,17 +29,29 @@ public class WebSocketFrameHandler extends SimpleChannelInboundHandler<TextWebSo
 
     private final ChannelManager channelManager;
     private final MessageService messageService;
+    private final GroupService groupService;
     private final ObjectMapper objectMapper;
     private final JwtUtil jwtUtil;
 
     public WebSocketFrameHandler(ChannelManager channelManager,
                                   MessageService messageService,
+                                  GroupService groupService,
                                   ObjectMapper objectMapper,
                                   JwtUtil jwtUtil) {
         this.channelManager = channelManager;
         this.messageService = messageService;
+        this.groupService = groupService;
         this.objectMapper = objectMapper;
         this.jwtUtil = jwtUtil;
+    }
+
+    private void sendToUser(Long userId, String json) {
+        if (userId != null && userId > 0) {
+            var ch = channelManager.getChannel(userId);
+            if (ch != null && ch.isActive()) {
+                ch.writeAndFlush(new TextWebSocketFrame(json));
+            }
+        }
     }
 
     @Override
@@ -83,6 +96,25 @@ public class WebSocketFrameHandler extends SimpleChannelInboundHandler<TextWebSo
             if ("CHAT".equals(type)) {
                 SendMessageRequest request = objectMapper.treeToValue(node.path("data"), SendMessageRequest.class);
                 messageService.send(userId, request);
+            }
+            if ("TYPING".equals(type)) {
+                JsonNode data = node.path("data");
+                int chatType = data.path("chatType").asInt();
+                String json = objectMapper.writeValueAsString(
+                    Map.of("type", "TYPING", "data", Map.of(
+                        "chatType", chatType,
+                        "fromUserId", userId,
+                        "toUserId", data.path("toUserId").asLong(0),
+                        "groupId", data.path("groupId").asLong(0),
+                        "typing", data.path("typing").asBoolean(true)
+                    ))
+                );
+                if (chatType == 1) {
+                    sendToUser(data.path("toUserId").asLong(), json);
+                } else {
+                    groupService.listMemberUserIds(data.path("groupId").asLong())
+                        .forEach(uid -> { if (!uid.equals(userId)) sendToUser(uid, json); });
+                }
             }
         } catch (Exception ex) {
             log.error("处理消息异常", ex);

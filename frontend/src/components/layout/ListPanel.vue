@@ -5,6 +5,18 @@
       <svg class="search-icon" viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
       <input v-model="searchQ" class="search-input" placeholder="搜索" @input="onSearch" @keydown="onSearchKey" />
       <button v-if="searchQ" class="search-clear" @click="searchQ='';clearResults()">&times;</button>
+      <!-- + 按钮 -->
+      <div class="plus-wrap">
+        <button class="plus-btn" @click="showPlusMenu = !showPlusMenu" title="添加">+</button>
+        <Transition name="plus-fade">
+          <div v-if="showPlusMenu" class="plus-menu">
+            <div class="plus-item" @click="showPlusMenu=false;showAddFriend=true">添加好友</div>
+            <div class="plus-item" @click="showPlusMenu=false;showCreateGroup=true">创建群聊</div>
+          </div>
+        </Transition>
+      </div>
+      <!-- 点击外部关闭菜单 -->
+      <div v-if="showPlusMenu" class="plus-backdrop" @click="showPlusMenu=false"></div>
     </div>
 
     <!-- 搜索结果 -->
@@ -66,6 +78,7 @@ let timer = null
 const showAddFriend = ref(false)
 const showFriendRequests = ref(false)
 const showCreateGroup = ref(false)
+const showPlusMenu = ref(false)
 const popStyle = computed(() => ({ left:(ui.column2Width+64)+'px', top:'60px' }))
 function closeAll() { showAddFriend.value=false; showFriendRequests.value=false; showCreateGroup.value=false }
 
@@ -148,6 +161,28 @@ function trunc(t,n) { return t&&t.length>n ? t.slice(0,n)+'...' : t }
 .search-input { flex:1; border:none; outline:none; background:transparent; font-size:13px; color:var(--text-primary,#e8e8ea); padding:2px 0; }
 .search-input::placeholder { color:var(--text-placeholder,#555); }
 .search-clear { background:none; border:none; color:var(--text-muted,#888); cursor:pointer; font-size:16px; }
+.plus-wrap { position:relative; flex-shrink:0; }
+.plus-btn {
+  width:28px; height:28px; border:none; background:var(--bg-hover,rgba(255,255,255,0.06));
+  color:var(--text-secondary,#bbb); font-size:20px; font-weight:300; line-height:1;
+  border-radius:6px; cursor:pointer; display:flex; align-items:center; justify-content:center;
+  transition:all 0.15s;
+}
+.plus-btn:hover { background:var(--accent,#f7931e); color:#fff; }
+.plus-menu {
+  position:absolute; top:100%; right:0; margin-top:6px;
+  min-width:120px; background:var(--bg-dialog,#252529);
+  border:1px solid var(--border,#3a3c44); border-radius:8px;
+  padding:4px 0; box-shadow:0 6px 20px rgba(0,0,0,0.3); z-index:200;
+}
+.plus-item {
+  padding:10px 16px; font-size:13px; color:var(--text-primary,#e8e8ea);
+  cursor:pointer; white-space:nowrap; transition:background 0.12s;
+}
+.plus-item:hover { background:var(--bg-hover,rgba(255,255,255,0.06)); }
+.plus-backdrop { position:fixed; inset:0; z-index:199; }
+.plus-fade-enter-active,.plus-fade-leave-active { transition:opacity 0.15s,transform 0.15s; }
+.plus-fade-enter-from,.plus-fade-leave-to { opacity:0; transform:translateY(-4px); }
 .search-results { flex:1; overflow-y:auto; padding:4px 0; }
 .sr-empty { text-align:center; padding:30px; color:var(--text-muted,#999); font-size:13px; }
 .sr-item { display:flex; align-items:center; gap:10px; padding:8px 14px; cursor:pointer; transition:background .1s; }

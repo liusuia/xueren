@@ -17,5 +17,6 @@ public class ConversationVO {
     private String lastMessagePreview;
     private LocalDateTime lastMessageAt;
     private Integer unreadCount;
+    private String draft;
     private Boolean targetIsOnline;
 }

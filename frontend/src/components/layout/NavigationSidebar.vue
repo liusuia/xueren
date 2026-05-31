@@ -18,9 +18,18 @@
 
     <!-- 底部 -->
     <div class="nav-bottom">
-      <button class="nav-btn" @click="ui.toggleTheme()" :title="ui.theme === 'dark' ? '白天模式' : '夜间模式'">
-        <svg v-if="ui.theme === 'dark'" viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M12 7c-2.76 0-5 2.24-5 5s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5z"/></svg>
-        <svg v-else viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9 0-.46-.04-.92-.1-1.36c-.98 1.37-2.58 2.26-4.4 2.26-3.03 0-5.5-2.47-5.5-5.5 0-1.82.89-3.42 2.26-4.4-.44-.06-.9-.1-1.36-.1z"/></svg>
+      <button class="nav-btn" @click="ui.toggleTheme()" :title="ui.theme === 'dark' ? '切换白天模式' : '切换夜间模式'">
+        <!-- 夜间模式 → 显示月亮（点击切白天） -->
+        <svg v-if="ui.theme === 'dark'" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+          <circle cx="17" cy="5" r="1" fill="currentColor" stroke="none"/>
+          <circle cx="6" cy="18" r="1" fill="currentColor" stroke="none"/>
+        </svg>
+        <!-- 白天模式 → 显示太阳（点击切夜间） -->
+        <svg v-else viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="5"/>
+          <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+        </svg>
       </button>
     </div>
   </nav>

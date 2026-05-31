@@ -15,6 +15,7 @@ public class FriendVO {
     private String nickname;
     private String avatar;
     private String remark;
+    private String verificationMsg;
     private Integer status;
     private Long requesterId;
     private LocalDateTime createdAt;

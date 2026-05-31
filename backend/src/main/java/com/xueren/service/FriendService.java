@@ -38,7 +38,7 @@ public class FriendService {
     }
 
     @Transactional
-    public void sendRequest(Long userId, Long friendId) {
+    public void sendRequest(Long userId, Long friendId, String verificationMsg) {
         if (userId.equals(friendId)) {
             throw new BusinessException("不能添加自己为好友");
         }
@@ -67,6 +67,7 @@ public class FriendService {
         request.setFriendId(friendId);
         request.setRequesterId(userId);
         request.setStatus(Constants.FRIEND_PENDING);
+        request.setVerificationMsg(verificationMsg);
         friendRepository.save(request);
     }
 
@@ -225,6 +226,7 @@ public class FriendService {
                 .nickname(user.getNickname())
                 .avatar(user.getAvatar())
                 .remark(friend.getRemark())
+                .verificationMsg(friend.getVerificationMsg())
                 .status(friend.getStatus())
                 .requesterId(friend.getRequesterId())
                 .createdAt(friend.getCreatedAt())

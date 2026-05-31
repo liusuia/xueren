@@ -23,5 +23,7 @@ public class SendMessageRequest {
 
     private Long fileId;
 
+    private Long replyToId;
+
     private List<Long> mentionedUserIds;
 }

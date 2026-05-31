@@ -46,6 +46,9 @@ public class Conversation {
     @Column(name = "is_pinned")
     private Integer isPinned;
 
+    @Column(length = 5000)
+    private String draft;
+
     @Column(name = "created_at", insertable = false, updatable = false)
     private LocalDateTime createdAt;
 

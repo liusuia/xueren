@@ -76,6 +76,7 @@ public class ConversationService {
                 .lastMessagePreview(conversation.getLastMessagePreview())
                 .lastMessageAt(conversation.getLastMessageAt())
                 .unreadCount(conversation.getUnreadCount())
+                .draft(conversation.getDraft())
                 .targetIsOnline(isOnline)
                 .build();
     }
@@ -105,6 +106,22 @@ public class ConversationService {
         conversation.setUnreadCount(0);
         conversation.setLastReadMessageId(lastMessageId);
         conversationRepository.save(conversation);
+    }
+
+    @Transactional
+    public void saveDraft(Long userId, Integer targetType, Long targetId, String draft) {
+        Conversation conv = conversationRepository
+                .findByUserIdAndTargetTypeAndTargetId(userId, targetType, targetId)
+                .orElseGet(() -> {
+                    Conversation c = new Conversation();
+                    c.setUserId(userId);
+                    c.setTargetType(targetType);
+                    c.setTargetId(targetId);
+                    c.setUnreadCount(0);
+                    return c;
+                });
+        conv.setDraft(draft != null && draft.isBlank() ? null : draft);
+        conversationRepository.save(conv);
     }
 
     @Transactional

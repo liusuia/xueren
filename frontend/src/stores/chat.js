@@ -10,6 +10,52 @@ export const useChatStore = defineStore('chat', () => {
   const loading = ref(false)
   const sending = ref(false)
   const jumpMsgId = ref(null)
+  const replyTo = ref(null)
+  const typingUser = ref(null) // { userId, nickname } or null
+
+  function setTypingUser(data) {
+    typingUser.value = data
+  }
+
+  const editMsgId = ref(null)
+  const editContent = ref('')
+  const multiSelect = ref(false)
+  const selectedIds = ref(new Set())
+
+  function toggleMultiSelect() { multiSelect.value = !multiSelect.value; if (!multiSelect.value) selectedIds.value.clear() }
+  function toggleSelect(id) {
+    const s = selectedIds.value
+    if (s.has(id)) s.delete(id); else s.add(id)
+    selectedIds.value = new Set(s) // 触发响应式
+  }
+  async function deleteSelected() {
+    const ids = [...selectedIds.value]
+    for (const id of ids) {
+      try { await messageApi.hide(id) } catch {}
+    }
+    messages.value = messages.value.filter(m => !selectedIds.value.has(m.id))
+    multiSelect.value = false; selectedIds.value.clear()
+  }
+  function startEdit(msgId, content) { editMsgId.value = msgId; editContent.value = content || '' }
+  function cancelEdit() { editMsgId.value = null; editContent.value = '' }
+  async function submitEdit() {
+    if (!editMsgId.value || !editContent.value.trim()) return
+    try {
+      const updated = await messageApi.edit(editMsgId.value, editContent.value.trim())
+      const idx = messages.value.findIndex(m => m.id === editMsgId.value)
+      if (idx !== -1) messages.value[idx] = { ...messages.value[idx], ...updated }
+    } catch {}
+    cancelEdit()
+  }
+
+  function setReplyTo(msg) {
+    replyTo.value = msg ? {
+      id: msg.id,
+      preview: msg.content || (msg.msgType === 2 ? '[图片]' : msg.msgType === 3 ? '[文件]' : '[消息]'),
+      senderName: msg.fromUserName || msg.fromNickname || ''
+    } : null
+  }
+  function clearReply() { replyTo.value = null }
 
   function openChat(conversation) {
     currentConv.value = {
@@ -93,6 +139,7 @@ export const useChatStore = defineStore('chat', () => {
       payload.groupId = targetId
     }
     if (fileId) payload.fileId = fileId
+    if (replyTo.value) payload.replyToId = replyTo.value.id
     if (mentionedUserIds) payload.mentionedUserIds = mentionedUserIds
 
     // 乐观更新
@@ -112,6 +159,8 @@ export const useChatStore = defineStore('chat', () => {
     }
     messages.value.push(optimistic)
 
+    const hasReply = !!replyTo.value
+    if (hasReply) clearReply()
     sending.value = true
     try {
       const real = await messageApi.send(payload)
@@ -189,8 +238,10 @@ export const useChatStore = defineStore('chat', () => {
   })
 
   return {
-    currentConv, messages, loading, sending, jumpMsgId,
+    currentConv, messages, loading, sending, jumpMsgId, replyTo, typingUser,
     openChat, closeChat, fetchMessages, loadOlderMessages, sendMessage, recallMessage, clearHistory,
+    setReplyTo, clearReply, setTypingUser, editMsgId, editContent, startEdit, cancelEdit, submitEdit,
+    multiSelect, selectedIds, toggleMultiSelect, toggleSelect, deleteSelected,
     removeMessageLocal, appendFromPush, markRecalledFromPush, sortedMessages
   }
 })

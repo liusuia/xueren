@@ -47,6 +47,7 @@ import { useConversationStore } from '../../stores/conversations'
 import { useContactStore } from '../../stores/contacts'
 import { useGroupStore } from '../../stores/groups'
 import { useWebSocket } from '../../composables/useWebSocket'
+import { addWsListener } from '../../api/ws'
 import { useKeyboard } from '../../composables/useKeyboard'
 
 import NavigationSidebar from './NavigationSidebar.vue'
@@ -117,6 +118,38 @@ onMessageRecalled((msg) => {
       convTargetId = message.groupId
     }
     convStore.updatePreviewToRecall(message.chatType, convTargetId, message.id)
+  }
+})
+
+// 正在输入指示
+let typingTimer = null
+addWsListener((packet) => {
+  if (packet.type === 'MESSAGE_EDITED') {
+    const m = packet.data
+    const existing = chat.messages.find(x => x.id === m.id)
+    if (existing) { existing.content = m.content; existing.editedAt = m.editedAt }
+    const tid = m.chatType === 1 ? m.fromUserId : m.groupId
+    const conv = convStore.list.find(c => c.targetType === m.chatType && c.targetId === tid)
+    if (conv && conv.lastMessageId === m.id) {
+      conv.lastMessagePreview = (m.content || '').length > 50 ? m.content.slice(0, 50) + '...' : (m.content || '')
+    }
+    playMessageSound()
+    return
+  }
+  if (packet.type === 'TYPING') {
+    const d = packet.data
+    if (!d || !chat.currentConv) return
+    const isCurrent =
+      (d.chatType === 1 && d.fromUserId === chat.currentConv.targetId) ||
+      (d.chatType === 2 && d.groupId === chat.currentConv.targetId)
+    if (isCurrent) {
+      if (d.typing) {
+        clearTimeout(typingTimer)
+        chat.setTypingUser({ userId: d.fromUserId })
+      } else {
+        typingTimer = setTimeout(() => chat.setTypingUser(null), 500)
+      }
+    }
   }
 })
 

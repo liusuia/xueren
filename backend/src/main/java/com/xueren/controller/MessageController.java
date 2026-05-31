@@ -9,6 +9,7 @@ import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/messages")
@@ -66,5 +67,11 @@ public class MessageController {
     public ApiResponse<Void> hideMessage(@PathVariable Long messageId) {
         messageService.hideMessage(AuthHolder.currentUserId(), messageId);
         return ApiResponse.ok("已删除", null);
+    }
+
+    @PutMapping("/{messageId}")
+    public ApiResponse<MessageVO> editMessage(@PathVariable Long messageId,
+                                              @RequestBody Map<String, String> body) {
+        return ApiResponse.ok(messageService.editMessage(AuthHolder.currentUserId(), messageId, body.get("content")));
     }
 }

@@ -21,7 +21,10 @@ public class MessageVO {
     private Integer msgType;
     private Long fileId;
     private String fileUrl;
+    private Long replyToId;
+    private String replyToPreview;
     private Integer isRecalled;
+    private LocalDateTime editedAt;
     private LocalDateTime createdAt;
     private List<Long> mentionedUserIds;
 }

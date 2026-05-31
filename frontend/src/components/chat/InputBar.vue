@@ -29,7 +29,7 @@
 
     <!-- 输入区 -->
     <div class="ib-input-area">
-      <textarea ref="inputRef" v-model="text" class="ib-textarea" :placeholder="placeholder" rows="1" @keydown.enter.exact="onEnter" @input="onInput" ></textarea>
+      <textarea ref="inputRef" v-model="text" class="ib-textarea" :placeholder="placeholder" rows="1" @keydown.enter.exact="onEnter" @input="onInput" @paste="onPaste"></textarea>
       <button class="ib-send" :class="{ ready: text.trim() }" @click="onSend" :disabled="!text.trim()">发送</button>
     </div>
 
@@ -41,13 +41,17 @@
 </template>
 
 <script setup>
-import { ref, computed, nextTick } from 'vue'
+import { ref, computed, nextTick, onUnmounted } from 'vue'
 import EmojiPicker from './EmojiPicker.vue'
 import Avatar from '../common/Avatar.vue'
 import { useAuthStore } from '../../stores/auth'
+import { useChatStore } from '../../stores/chat'
+import { sendTyping } from '../../api/ws'
+import { fileApi } from '../../api/endpoints'
 import { GROUP_ROLE } from '../../utils/constants'
 
 const auth = useAuthStore()
+const chat = useChatStore()
 const props = defineProps({
   isGroup: { type: Boolean, default: false },
   members: { type: Array, default: () => [] }
@@ -61,6 +65,8 @@ const inputRef = ref(null)
 const imageInput = ref(null)
 const fileInput = ref(null)
 const placeholder = props.isGroup ? '输入消息，@ 提及成员' : '输入消息，Enter发送'
+
+defineExpose({ focus: () => nextTick(() => inputRef.value?.focus()) })
 
 const currentMentions = ref([]) // 当前输入中 @ 的用户ID列表
 
@@ -76,7 +82,22 @@ const mentionMembers = computed(() => {
   return props.members.filter(m => m.userId !== auth.user?.id)
 })
 
+let typingTimer = null
+function notifyTyping() {
+  if (!chat.currentConv) return
+  const data = { chatType: chat.currentConv.targetType, typing: true }
+  if (chat.currentConv.targetType === 1) data.toUserId = chat.currentConv.targetId
+  else data.groupId = chat.currentConv.targetId
+  sendTyping(data)
+  clearTimeout(typingTimer)
+  typingTimer = setTimeout(() => {
+    sendTyping({ ...data, typing: false })
+  }, 2000)
+}
+onUnmounted(() => clearTimeout(typingTimer))
+
 function onInput() {
+  notifyTyping()
   // 检测 @ 符号触发提及
   const val = text.value
   const cursorPos = inputRef.value?.selectionStart || val.length
@@ -109,6 +130,24 @@ function insertMention(name, userIds) {
     const pos = before.length + name.length + 2
     inputRef.value?.setSelectionRange(pos, pos)
   })
+}
+
+async function onPaste(e) {
+  const items = e.clipboardData?.items
+  if (!items) return
+  for (const item of items) {
+    if (item.type.startsWith('image/')) {
+      e.preventDefault()
+      const file = item.getAsFile()
+      if (file) {
+        try {
+          const fileVO = await fileApi.upload(file)
+          emit('sendImage', file)
+        } catch { /* ignore */ }
+      }
+      return
+    }
+  }
 }
 
 function onEnter(e) {

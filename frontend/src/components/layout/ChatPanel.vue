@@ -1,12 +1,13 @@
 <template>
-  <div class="chat-panel" v-if="chat.currentConv">
+  <div class="chat-panel" v-if="chat.currentConv" @dragover.prevent @drop.prevent="onDrop">
     <!-- 头部 -->
     <div class="cp-header">
       <div class="cp-h-left">
         <Avatar :src="chat.currentConv.targetAvatar" :name="headerName" :size="34" class="cp-h-avatar" @click.stop="onAvatarClick" />
         <div class="cp-h-info">
           <div class="cp-h-name">{{ headerName }}</div>
-          <div class="cp-h-status" v-if="chat.currentConv.targetType === 1">
+          <div class="cp-h-typing" v-if="chat.typingUser">对方正在输入...</div>
+          <div class="cp-h-status" v-else-if="chat.currentConv.targetType === 1">
             <OnlineDot :active="chat.currentConv.online" :s="8" />
             <span>{{ chat.currentConv.online ? '在线' : '离线' }}</span>
           </div>
@@ -34,8 +35,18 @@
       @userClick="(uid) => $emit('userInfo', uid)"
     />
 
+    <!-- 回复指示条 -->
+    <div v-if="chat.replyTo" class="cp-reply-bar">
+      <div class="cp-reply-info">
+        <span class="cp-reply-label">回复 {{ chat.replyTo.senderName }}</span>
+        <span class="cp-reply-preview">{{ chat.replyTo.preview }}</span>
+      </div>
+      <button class="cp-reply-close" @click="chat.clearReply()">&times;</button>
+    </div>
+
     <!-- 输入栏 -->
     <InputBar
+      ref="inputBarRef"
       :isGroup="chat.currentConv.targetType === 2"
       :members="groupMembers"
       @sendText="onSendText"
@@ -67,11 +78,17 @@ import { useChatStore } from '../../stores/chat'
 import { useGroupStore } from '../../stores/groups'
 import { useContactStore } from '../../stores/contacts'
 import { fileApi } from '../../api/endpoints'
-import { computed } from 'vue'
+import { computed, ref, watch, nextTick } from 'vue'
 
 const chat = useChatStore()
 const groupStore = useGroupStore()
 const contactStore = useContactStore()
+const inputBarRef = ref(null)
+
+// 点击回复后自动聚焦输入框
+watch(() => chat.replyTo, (val) => {
+  if (val) nextTick(() => inputBarRef.value?.focus())
+})
 
 const groupMembers = computed(() => groupStore.currentGroupMembers || [])
 
@@ -122,6 +139,21 @@ async function onSendFile(file) {
 async function onSendEmoji(emoji) {
   await chat.sendMessage({ content: emoji, msgType: 4 })
 }
+
+async function onDrop(e) {
+  const files = e.dataTransfer?.files
+  if (!files || !files.length) return
+  for (const file of files) {
+    try {
+      const fileVO = await fileApi.upload(file)
+      if (file.type.startsWith('image/')) {
+        await chat.sendMessage({ content: fileVO.url, msgType: 2, fileId: fileVO.id })
+      } else {
+        await chat.sendMessage({ content: fileVO.originalName, msgType: 3, fileId: fileVO.id })
+      }
+    } catch {}
+  }
+}
 </script>
 
 <style scoped>
@@ -138,6 +170,8 @@ async function onSendEmoji(emoji) {
 .cp-h-info { min-width: 0; }
 .cp-h-name { font-size: 15px; font-weight: 500; color: var(--text-primary, #e8e8ea); }
 .cp-h-status { display: flex; align-items: center; gap: 4px; font-size: 11px; color: var(--text-muted, #999); margin-top: 1px; }
+.cp-h-typing { font-size: 11px; color: var(--accent, #f7931e); margin-top: 1px; animation: typingBlink 1s ease-in-out infinite; }
+@keyframes typingBlink { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
 .cp-h-right { display: flex; gap: 4px; }
 .cp-h-btn {
   width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;
@@ -145,6 +179,16 @@ async function onSendEmoji(emoji) {
   border-radius: 4px; cursor: pointer; transition: all 0.15s;
 }
 .cp-h-btn:hover { background: var(--bg-hover, rgba(255,255,255,0.06)); color: var(--text-secondary, #bbb); }
+
+.cp-reply-bar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 16px; background: var(--bg-input, #2e3038);
+  border-top: 1px solid var(--border, #3a3c44);
+  font-size: 12px;
+}
+.cp-reply-label { color: var(--accent, #f7931e); font-weight: 500; margin-right: 8px; }
+.cp-reply-preview { color: var(--text-muted, #999); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+.cp-reply-close { background: none; border: none; color: var(--text-muted, #888); cursor: pointer; font-size: 18px; padding: 0 4px; }
 
 .cp-empty {
   flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;

@@ -31,6 +31,9 @@ public class Message {
     @Column(columnDefinition = "TEXT")
     private String content;
 
+    @Column(name = "reply_to_id")
+    private Long replyToId;
+
     @Column(name = "msg_type")
     private Integer msgType;
 
@@ -45,6 +48,9 @@ public class Message {
 
     @Column(name = "recalled_at")
     private LocalDateTime recalledAt;
+
+    @Column(name = "edited_at")
+    private LocalDateTime editedAt;
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;

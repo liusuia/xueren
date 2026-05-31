@@ -25,7 +25,7 @@ export const userApi = {
 export const friendApi = {
   list: () => http.get('/friends'),
   requests: () => http.get('/friends/requests'),
-  sendRequest: (friendId) => http.post('/friends/request', { friendId }),
+  sendRequest: (friendId, verificationMsg) => http.post('/friends/request', { friendId, verificationMsg }),
   accept: (requesterId) => http.post(`/friends/accept/${requesterId}`),
   reject: (requesterId) => http.post(`/friends/reject/${requesterId}`),
   block: (friendId) => http.post(`/friends/block/${friendId}`),
@@ -70,7 +70,8 @@ export const messageApi = {
   markRead: (messageId) => http.post(`/messages/${messageId}/read`),
   search: (keyword) => http.get('/messages/search', { params: { keyword } }),
   clear: (chatType, targetId) => http.delete('/messages/clear', { params: { chatType, targetId } }),
-  hide: (messageId) => http.post(`/messages/${messageId}/hide`)
+  hide: (messageId) => http.post(`/messages/${messageId}/hide`),
+  edit: (messageId, content) => http.put(`/messages/${messageId}`, { content })
 }
 
 // ==================== Conversation ====================

@@ -7,6 +7,7 @@ import com.xueren.service.ConversationService;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/conversations")
@@ -42,5 +43,13 @@ public class ConversationController {
                                           @RequestParam Long targetId) {
         boolean pinned = conversationService.togglePin(AuthHolder.currentUserId(), targetType, targetId);
         return ApiResponse.ok(pinned ? "已置顶" : "已取消置顶", pinned);
+    }
+
+    @PutMapping("/draft")
+    public ApiResponse<Void> saveDraft(@RequestParam Integer targetType,
+                                       @RequestParam Long targetId,
+                                       @RequestBody Map<String, String> body) {
+        conversationService.saveDraft(AuthHolder.currentUserId(), targetType, targetId, body.get("draft"));
+        return ApiResponse.ok(null, null);
     }
 }

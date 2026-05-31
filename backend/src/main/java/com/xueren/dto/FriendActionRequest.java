@@ -8,4 +8,6 @@ public class FriendActionRequest {
 
     @NotNull(message = "好友用户ID不能为空")
     private Long friendId;
+
+    private String verificationMsg;
 }
