@@ -3,11 +3,14 @@
     <!-- 头部 -->
     <div class="cp-header">
       <div class="cp-h-left">
-        <Avatar :src="chat.currentConv.targetAvatar" :name="headerName" :size="34" class="cp-h-avatar" @click.stop="onAvatarClick" />
+        <div v-if="chat.currentConv.targetType === 1 && chat.currentConv.targetId === 1" class="cp-fh-avatar">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="#f7931e"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm4 18H6V4h7v5h5v11zM8 15h8v2H8zm0-4h8v2H8z"/></svg>
+        </div>
+        <Avatar v-else :src="chat.currentConv.targetAvatar" :name="headerName" :size="34" class="cp-h-avatar" @click.stop="onAvatarClick" />
         <div class="cp-h-info">
           <div class="cp-h-name">{{ headerName }}</div>
           <div class="cp-h-typing" v-if="chat.typingUser">对方正在输入...</div>
-          <div class="cp-h-status" v-else-if="chat.currentConv.targetType === 1">
+          <div class="cp-h-status" v-else-if="chat.currentConv.targetType === 1 && chat.currentConv.targetId !== 1">
             <OnlineDot :active="chat.currentConv.online" :s="8" />
             <span>{{ chat.currentConv.online ? '在线' : '离线' }}</span>
           </div>
@@ -17,7 +20,7 @@
         <button v-if="chat.currentConv.targetType === 2 && chat.currentConv.targetId !== 1" class="cp-h-btn" @click="$emit('groupInfo')" title="群信息">
           <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></svg>
         </button>
-        <button v-if="chat.currentConv.targetType === 1" class="cp-h-btn" @click="$emit('friendInfo', chat.currentConv.targetId)" title="聊天信息">
+        <button v-if="chat.currentConv.targetType === 1 && chat.currentConv.targetId !== 1" class="cp-h-btn" @click="$emit('friendInfo', chat.currentConv.targetId)" title="聊天信息">
           <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></svg>
         </button>
         <button class="cp-h-btn" @click="$emit('close')" title="关闭">
@@ -104,11 +107,10 @@ const headerName = computed(() => {
 
 function onAvatarClick() {
   if (!chat.currentConv) return
+  if (chat.currentConv.targetId === 1) return // 文件助手
   if (chat.currentConv.targetType === 2) {
-    // 群聊：打开群信息
     emit('groupInfo')
   } else {
-    // 单聊：打开用户资料
     emit('userInfo', chat.currentConv.targetId)
   }
 }
@@ -176,6 +178,7 @@ async function onDrop(e) {
   border-radius: 4px; cursor: pointer; transition: all 0.15s;
 }
 .cp-h-btn:hover { background: var(--bg-hover, rgba(255,255,255,0.06)); color: var(--text-secondary, #bbb); }
+.cp-fh-avatar { width: 34px; height: 34px; border-radius: 8px; background: rgba(247,147,30,0.15); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 
 .cp-reply-bar {
   display: flex; align-items: center; justify-content: space-between;

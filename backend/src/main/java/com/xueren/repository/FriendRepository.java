@@ -13,4 +13,8 @@ public interface FriendRepository extends JpaRepository<Friend, Long> {
     List<Friend> findByUserIdAndStatus(Long userId, Integer status);
 
     List<Friend> findByFriendIdAndStatus(Long friendId, Integer status);
+
+    void deleteByUserId(Long userId);
+
+    void deleteByUserIdOrFriendId(Long userId, Long friendId);
 }

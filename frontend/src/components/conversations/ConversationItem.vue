@@ -2,13 +2,13 @@
   <div class="ci-root" :class="{ active }">
     <div class="ci-avatar">
       <div v-if="isFileHelper" class="ci-fh-avatar">
-        <svg viewBox="0 0 24 24" width="22" height="22" fill="#f7931e"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm4 18H6V4h7v5h5v11z"/></svg>
+        <svg viewBox="0 0 24 24" width="24" height="24" fill="#f7931e"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm4 18H6V4h7v5h5v11zM8 15h8v2H8zm0-4h8v2H8z"/></svg>
       </div>
       <Avatar v-else
         :src="conv.targetAvatar"
         :name="displayName"
         :size="44"
-        :online="conv.targetType === 1 && conv.targetIsOnline"
+        :online="conv.targetType === 1 && conv.targetIsOnline && !isFileHelper"
       />
     </div>
     <div class="ci-body">

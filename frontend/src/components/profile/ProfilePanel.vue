@@ -33,7 +33,14 @@
         <div class="pp-info-list">
           <div class="pp-info-item">
             <span class="pp-info-label">邮箱</span>
-            <input v-model="form.email" class="pp-inp-text" placeholder="未设置" />
+            <span v-if="!emailEditing" class="pp-info-val" @click="emailEditing = true">{{ auth.user?.email || '未设置' }}</span>
+            <div v-else class="pp-email-edit">
+              <input v-model="emailForm.email" class="pp-inp-text" placeholder="新邮箱" />
+              <button class="pp-email-send" @click="sendEmailCode" :disabled="emailSending">{{ emailSending ? '发送中' : '获取验证码' }}</button>
+              <input v-model="emailForm.code" class="pp-inp-text" placeholder="验证码" maxlength="6" style="width:60px" />
+              <button class="pp-email-confirm" @click="confirmEmail" :disabled="emailSending">确认</button>
+              <span class="pp-email-cancel" @click="emailEditing = false; emailForm={email:'',code:''}">取消</span>
+            </div>
           </div>
           <div class="pp-info-item">
             <span class="pp-info-label">手机</span>
@@ -48,6 +55,7 @@
         <!-- 按钮 -->
         <button class="pp-btn-save" @click="onSave" :disabled="saving">{{ saving ? '保存中...' : '保存' }}</button>
         <button class="pp-btn-logout" @click="onLogout">退出登录</button>
+        <button class="pp-btn-delete" @click="onDeleteAccount">注销账号</button>
       </div>
     </div>
   </Teleport>
@@ -72,6 +80,9 @@ const show = ref(true)
 const avInput = ref(null)
 const editId = ref(false)
 const newId = ref('')
+const emailEditing = ref(false)
+const emailForm = ref({ email: '', code: '' })
+const emailSending = ref(false)
 
 const form = reactive({
   nickname: auth.user?.nickname || '',
@@ -105,6 +116,36 @@ async function onSave() {
 }
 async function onLogout() {
   if (await cfm.info('确定退出登录？')) { auth.logout(); router.push('/login') }
+}
+async function sendEmailCode() {
+  const email = emailForm.value.email.trim()
+  if (!email) { showError('请输入新邮箱'); return }
+  emailSending.value = true
+  try { await http.post('/users/email/send-code', { email }); success('验证码已发送') }
+  catch (e) { showError(e.message || '发送失败') }
+  finally { emailSending.value = false }
+}
+async function confirmEmail() {
+  const { email, code } = emailForm.value
+  if (!email.trim() || !code.trim()) { showError('请填写完整'); return }
+  emailSending.value = true
+  try {
+    const user = await http.put('/users/email', { email: email.trim(), code: code.trim() })
+    auth.user = user
+    success('邮箱已更新')
+    emailEditing.value = false
+  } catch (e) { showError(e.message || '验证失败') }
+  finally { emailSending.value = false }
+}
+
+async function onDeleteAccount() {
+  if (!await cfm.danger('确定注销账号？此操作不可撤销，所有数据将被永久删除。', { confirmText: '确认注销' })) return
+  try {
+    await http.delete('/users/me')
+    auth.logout()
+    router.push('/login')
+    success('账号已注销')
+  } catch (e) { showError(e.message || '注销失败') }
 }
 </script>
 
@@ -159,4 +200,11 @@ async function onLogout() {
 .pp-btn-save:disabled { opacity: 0.5; }
 .pp-btn-logout { width: 100%; margin-top: 8px; padding: 10px; border: none; border-radius: 8px; background: transparent; color: #e74c3c; font-size: 13px; cursor: pointer; }
 .pp-btn-logout:hover { background: rgba(231,76,60,0.06); }
+.pp-btn-delete { width: 100%; margin-top: 4px; padding: 10px; border: none; border-radius: 8px; background: transparent; color: var(--text-muted, #555); font-size: 12px; cursor: pointer; }
+.pp-btn-delete:hover { color: #e74c3c; }
+.pp-info-val { font-size: 13px; color: var(--text-primary, #e8e8ea); flex: 1; text-align: right; cursor: pointer; }
+.pp-email-edit { display: flex; gap: 4px; align-items: center; flex: 1; justify-content: flex-end; flex-wrap: wrap; }
+.pp-email-send, .pp-email-confirm { font-size: 10px; padding: 2px 6px; border: none; border-radius: 3px; background: var(--accent, #f7931e); color: #fff; cursor: pointer; white-space: nowrap; }
+.pp-email-send:disabled, .pp-email-confirm:disabled { opacity: 0.5; }
+.pp-email-cancel { font-size: 10px; color: var(--text-muted, #888); cursor: pointer; }
 </style>

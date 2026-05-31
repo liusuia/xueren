@@ -6,10 +6,12 @@ import com.xueren.dto.UserVO;
 import com.xueren.entity.User;
 import com.xueren.netty.ChannelManager;
 import com.xueren.repository.UserRepository;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -18,14 +20,21 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final ChannelManager channelManager;
+    private final JdbcTemplate jdbc;
     private final PasswordEncoder passwordEncoder;
+    private final MailService mailService;
+    private final SecureRandom random = new SecureRandom();
 
     public UserService(UserRepository userRepository,
                        ChannelManager channelManager,
-                       PasswordEncoder passwordEncoder) {
+                       PasswordEncoder passwordEncoder,
+                       JdbcTemplate jdbc,
+                       MailService mailService) {
         this.userRepository = userRepository;
         this.channelManager = channelManager;
         this.passwordEncoder = passwordEncoder;
+        this.jdbc = jdbc;
+        this.mailService = mailService;
     }
 
     public UserVO getById(Long id) {
@@ -94,6 +103,45 @@ public class UserService {
 
         userRepository.save(user);
         return toVOWithOnline(user);
+    }
+
+    public String sendEmailChangeCode(Long userId, String newEmail) {
+        if (newEmail == null || newEmail.isBlank()) throw new BusinessException("邮箱不能为空");
+        if (userRepository.findFirstByEmail(newEmail).isPresent())
+            throw new BusinessException("该邮箱已被使用");
+        String code = String.format("%06d", random.nextInt(1000000));
+        jdbc.update("INSERT INTO password_reset (email, code, expires_at) VALUES (?, ?, ?)",
+                newEmail, code, LocalDateTime.now().plusMinutes(10));
+        mailService.sendResetCode(newEmail, code);
+        return code;
+    }
+
+    @Transactional
+    public UserVO changeEmail(Long userId, String newEmail, String code) {
+        if (newEmail == null || newEmail.isBlank() || code == null || code.isBlank())
+            throw new BusinessException("邮箱和验证码不能为空");
+        var row = jdbc.queryForMap(
+            "SELECT id FROM password_reset WHERE email=? AND code=? AND used=0 AND expires_at>? ORDER BY id DESC LIMIT 1",
+            newEmail, code, LocalDateTime.now());
+        if (row == null || row.isEmpty()) throw new BusinessException("验证码无效或已过期");
+        jdbc.update("UPDATE password_reset SET used=1 WHERE id=?", row.get("id"));
+        if (userRepository.findFirstByEmail(newEmail).isPresent())
+            throw new BusinessException("该邮箱已被使用");
+        User user = requireUser(userId);
+        user.setEmail(newEmail);
+        userRepository.save(user);
+        return toVOWithOnline(user);
+    }
+
+    @Transactional
+    public void deleteAccount(Long userId) {
+        // 清理关联数据
+        jdbc.update("DELETE FROM friend WHERE user_id=? OR friend_id=?", userId, userId);
+        jdbc.update("DELETE FROM conversation WHERE user_id=?", userId);
+        jdbc.update("DELETE FROM message_read WHERE user_id=?", userId);
+        jdbc.update("DELETE FROM message_hidden WHERE user_id=?", userId);
+        jdbc.update("DELETE FROM user_token WHERE user_id=?", userId);
+        userRepository.deleteById(userId);
     }
 
     @Transactional

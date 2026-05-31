@@ -35,6 +35,23 @@ public class UserController {
         return ApiResponse.ok(userService.getById(id));
     }
 
+    @PostMapping("/email/send-code")
+    public ApiResponse<String> sendEmailCode(@RequestBody Map<String, String> body) {
+        String code = userService.sendEmailChangeCode(AuthHolder.currentUserId(), body.get("email"));
+        return ApiResponse.ok("验证码已发送", code);
+    }
+
+    @PutMapping("/email")
+    public ApiResponse<UserVO> changeEmail(@RequestBody Map<String, String> body) {
+        return ApiResponse.ok(userService.changeEmail(AuthHolder.currentUserId(), body.get("email"), body.get("code")));
+    }
+
+    @DeleteMapping("/me")
+    public ApiResponse<Void> deleteAccount() {
+        userService.deleteAccount(AuthHolder.currentUserId());
+        return ApiResponse.ok("账号已注销", null);
+    }
+
     @PutMapping("/username")
     public ApiResponse<UserVO> changeUsername(@RequestBody Map<String, String> body) {
         return ApiResponse.ok(userService.changeUsername(AuthHolder.currentUserId(), body.get("username")));

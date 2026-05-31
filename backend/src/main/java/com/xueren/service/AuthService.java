@@ -63,11 +63,15 @@ public class AuthService {
         if (request.getPassword() == null || request.getPassword().length() < 6) {
             throw new BusinessException("密码长度至少6位");
         }
+        String email = request.getEmail() != null ? request.getEmail().trim() : null;
+        if (email != null && !email.isBlank() && userRepository.findFirstByEmail(email).isPresent()) {
+            throw new BusinessException("该邮箱已被注册");
+        }
         User user = new User();
         // 自动生成唯一轻语号
         String autoId = generateQingyuId();
         user.setUsername(autoId);
-        user.setEmail(request.getEmail() != null ? request.getEmail().trim() : null);
+        user.setEmail(email);
         user.setPassword(passwordEncoder.encode(request.getPassword()));
         user.setNickname(request.getNickname() != null && !request.getNickname().isBlank()
                 ? request.getNickname().trim() : autoId);
@@ -98,12 +102,10 @@ public class AuthService {
             throw new BusinessException("登录失败次数过多，请15分钟后再试");
         }
 
-        // 支持用户名或邮箱登录
-        User user;
-        if (account.contains("@")) {
+        // 优先按轻语ID查，再按邮箱查（解决轻语ID含@时误匹配邮箱的问题）
+        User user = userRepository.findByUsername(account).orElse(null);
+        if (user == null && account.contains("@")) {
             user = userRepository.findFirstByEmail(account).orElse(null);
-        } else {
-            user = userRepository.findByUsername(account).orElse(null);
         }
         if (user == null || !passwordEncoder.matches(request.getPassword(), user.getPassword())) {
             loginRateLimiter.recordFailure(account);
