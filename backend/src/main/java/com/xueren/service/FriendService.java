@@ -11,6 +11,7 @@ import com.xueren.repository.ConversationRepository;
 import com.xueren.repository.FriendRepository;
 import com.xueren.repository.UserRepository;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,15 +27,18 @@ public class FriendService {
     private final UserRepository userRepository;
     private final ConversationRepository conversationRepository;
     private final ChannelManager channelManager;
+    private final JdbcTemplate jdbc;
 
     public FriendService(FriendRepository friendRepository, UserService userService,
                         UserRepository userRepository,
-                        ConversationRepository conversationRepository, ChannelManager channelManager) {
+                        ConversationRepository conversationRepository, ChannelManager channelManager,
+                        JdbcTemplate jdbc) {
         this.friendRepository = friendRepository;
         this.userService = userService;
         this.userRepository = userRepository;
         this.conversationRepository = conversationRepository;
         this.channelManager = channelManager;
+        this.jdbc = jdbc;
     }
 
     @Transactional
@@ -80,6 +84,8 @@ public class FriendService {
         }
         incoming.setStatus(Constants.FRIEND_ACCEPTED);
         friendRepository.save(incoming);
+        // 发送系统消息：你们已成为好友
+        sendFriendAcceptedMessage(userId, requesterId);
 
         Friend reverse = friendRepository.findByUserIdAndFriendId(userId, requesterId).orElse(null);
         if (reverse == null) {
@@ -196,6 +202,17 @@ public class FriendService {
         Map<Long, User> userMap = requesterIds.isEmpty() ? Map.of()
                 : userRepository.findAllById(requesterIds).stream().collect(Collectors.toMap(User::getId, Function.identity()));
         return valid.stream().map(f -> toVO(f, userMap.get(f.getUserId()))).toList();
+    }
+
+    private void sendFriendAcceptedMessage(Long userA, Long userB) {
+        try {
+            String msg = "你们已成为好友，现在可以开始聊天了";
+            jdbc.update("INSERT INTO message (chat_type,from_user_id,to_user_id,content,msg_type,created_at) VALUES (?,?,?,?,?,NOW())", 1, userA, userB, msg, 1);
+            jdbc.update("INSERT INTO message (chat_type,from_user_id,to_user_id,content,msg_type,created_at) VALUES (?,?,?,?,?,NOW())", 1, userB, userA, msg, 1);
+            // 创建/更新双方的会话
+            jdbc.update("INSERT INTO conversation (user_id,target_type,target_id,last_message_preview,last_message_at) VALUES (?,1,?,?,NOW()) ON DUPLICATE KEY UPDATE last_message_preview=?,last_message_at=NOW()", userA, userB, msg, msg);
+            jdbc.update("INSERT INTO conversation (user_id,target_type,target_id,last_message_preview,last_message_at) VALUES (?,1,?,?,NOW()) ON DUPLICATE KEY UPDATE last_message_preview=?,last_message_at=NOW()", userB, userA, msg, msg);
+        } catch (Exception ignored) {}
     }
 
     public void ensureFriend(Long userId, Long peerId) {

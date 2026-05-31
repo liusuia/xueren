@@ -33,7 +33,10 @@
       <div v-for="section in contactStore.friendSections" :key="section.letter">
         <div class="ctl-letter-hd">{{ section.letter }}</div>
         <div v-for="f in section.items" :key="f.userId" class="cti-root" @click="$emit('select', toConv(f))" @contextmenu.prevent="onFriendCtx($event, f)">
-          <Avatar :src="f.avatar" :name="f.remark || f.nickname || f.username" :size="40" />
+          <div v-if="f.userId === 1" class="cti-fh-avatar">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="#f7931e"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm4 18H6V4h7v5h5v11zM8 15h8v2H8zm0-4h8v2H8z"/></svg>
+          </div>
+          <Avatar v-else :src="f.avatar" :name="f.remark || f.nickname || f.username" :size="40" />
           <span class="cti-name">{{ f.remark || f.nickname || f.username }}</span>
         </div>
       </div>
@@ -183,6 +186,7 @@ function toGroupConv(g) {
 .cti-root { display: flex; align-items: center; gap: 12px; padding: 10px 16px; cursor: pointer; transition: background 0.12s; }
 .cti-root:hover { background: var(--bg-hover, rgba(255,255,255,0.04)); }
 .cti-name { font-size: 14px; color: var(--text-primary, #e8e8ea); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cti-fh-avatar { width: 40px; height: 40px; border-radius: 8px; background: rgba(247,147,30,0.15); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 .cd-overlay { position: fixed; inset: 0; z-index: 300; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; }
 .cd-dialog { width: 320px; max-height: 400px; border-radius: 12px; background: var(--bg-dialog, #252529); overflow: hidden; display: flex; flex-direction: column; }
 .cd-hd { padding: 14px 18px; font-size: 14px; font-weight: 600; color: var(--text-primary, #e8e8ea); border-bottom: 1px solid var(--border, #3a3c44); }

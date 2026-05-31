@@ -115,7 +115,7 @@ async function onSave() {
   finally { saving.value = false }
 }
 async function onLogout() {
-  if (await cfm.info('确定退出登录？')) { auth.logout(); router.push('/login') }
+  if (await cfm.info('确定退出登录？')) { auth.logout() }
 }
 async function sendEmailCode() {
   const email = emailForm.value.email.trim()
@@ -143,7 +143,6 @@ async function onDeleteAccount() {
   try {
     await http.delete('/users/me')
     auth.logout()
-    router.push('/login')
     success('账号已注销')
   } catch (e) { showError(e.message || '注销失败') }
 }

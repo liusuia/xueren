@@ -164,7 +164,7 @@ function openFriendChat(f) {
 
 function logout() {
   ElMessageBox.confirm('确定退出登录？', '提示', { confirmButtonText: '确定', cancelButtonText: '取消', type: 'warning' })
-    .then(() => { auth.logout(); router.push('/login') }).catch(() => {})
+    .then(() => { auth.logout() }).catch(() => {})
 }
 
 function applyTheme(v) { document.documentElement.setAttribute('data-theme', v) }

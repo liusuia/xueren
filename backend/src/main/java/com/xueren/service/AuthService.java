@@ -63,7 +63,7 @@ public class AuthService {
         if (request.getPassword() == null || request.getPassword().length() < 6) {
             throw new BusinessException("密码长度至少6位");
         }
-        String email = request.getEmail() != null ? request.getEmail().trim() : null;
+        String email = request.getEmail() != null && !request.getEmail().trim().isEmpty() ? request.getEmail().trim() : null;
         if (email != null && !email.isBlank() && userRepository.findFirstByEmail(email).isPresent()) {
             throw new BusinessException("该邮箱已被注册");
         }
@@ -77,7 +77,21 @@ public class AuthService {
                 ? request.getNickname().trim() : autoId);
         userRepository.save(user);
         createFileHelperFriendship(user.getId());
+        // 文件助手发欢迎语
+        sendWelcomeMessage(user);
         return buildAuthResponse(user);
+    }
+
+    private void sendWelcomeMessage(User user) {
+        try {
+            String welcome = "欢迎使用轻语！你可以在这里给自己发送文字、图片、文件，方便跨设备传输和存储。";
+            jdbcTemplate.update("INSERT INTO message (chat_type, from_user_id, to_user_id, content, msg_type, created_at) VALUES (?,?,?,?,?,NOW())",
+                    1, 1L, user.getId(), welcome, 1);
+            // 创建文件助手会话记录
+            jdbcTemplate.update(
+                "INSERT INTO conversation (user_id, target_type, target_id, last_message_preview, last_message_at) VALUES (?,1,1,?,NOW()) ON DUPLICATE KEY UPDATE last_message_preview=?, last_message_at=NOW()",
+                user.getId(), welcome, welcome);
+        } catch (Exception ignored) {}
     }
 
     private void createFileHelperFriendship(Long userId) {

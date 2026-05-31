@@ -12,11 +12,16 @@
           </div>
           <div class="fci-body" v-if="friendInfo">
             <div class="fci-top">
-              <Avatar :src="friendInfo.avatar" :name="friendInfo.nickname || friendInfo.username" :size="56" />
+              <div v-if="friendInfo.id === 1" class="fci-fh-avatar">
+                <svg viewBox="0 0 24 24" width="28" height="28" fill="#f7931e"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm4 18H6V4h7v5h5v11zM8 15h8v2H8zm0-4h8v2H8z"/></svg>
+              </div>
+              <Avatar v-else :src="friendInfo.avatar" :name="friendInfo.nickname || friendInfo.username" :size="56" />
               <div class="fci-name">{{ friendInfo.nickname || friendInfo.username }}</div>
               <div class="fci-uid">@{{ friendInfo.username }}</div>
-              <OnlineDot :active="friendInfo.isOnline" :s="8" />
-              <span class="fci-status">{{ friendInfo.isOnline ? '在线' : (friendInfo.lastOnlineAt ? '最后在线 ' + formatFullTime(friendInfo.lastOnlineAt) : '离线') }}</span>
+              <template v-if="friendInfo.id !== 1">
+                <OnlineDot :active="friendInfo.isOnline" :s="8" />
+                <span class="fci-status">{{ friendInfo.isOnline ? '在线' : (friendInfo.lastOnlineAt ? '最后在线 ' + formatFullTime(friendInfo.lastOnlineAt) : '离线') }}</span>
+              </template>
             </div>
 
             <div class="fci-card">
@@ -114,6 +119,7 @@ function onTopConv() {
 .fci-body { flex: 1; overflow-y: auto; padding: 16px; }
 
 .fci-top { display: flex; flex-direction: column; align-items: center; gap: 4px; margin-bottom: 16px; }
+.fci-fh-avatar { width: 56px; height: 56px; border-radius: 12px; background: rgba(247,147,30,0.15); display: flex; align-items: center; justify-content: center; margin: 0 auto; }
 .fci-name { font-size: 17px; font-weight: 600; color: var(--text-primary, #e8e8ea); }
 .fci-uid { font-size: 12px; color: var(--text-muted, #999); }
 .fci-status { font-size: 11px; color: var(--text-muted, #999); }

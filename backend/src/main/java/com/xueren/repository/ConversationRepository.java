@@ -21,4 +21,9 @@ public interface ConversationRepository extends JpaRepository<Conversation, Long
     @Modifying
     @Query("UPDATE Conversation c SET c.unreadCount = COALESCE(c.unreadCount, 0) + 1 WHERE c.id = :convId")
     int incrementUnread(@Param("convId") Long convId);
+
+    /** 更新会话元信息（不覆盖未读数） */
+    @Modifying
+    @Query("UPDATE Conversation c SET c.lastMessageId=:msgId, c.lastMessagePreview=:preview, c.lastMessageAt=:time WHERE c.id=:id")
+    void updateMeta(@Param("id") Long id, @Param("msgId") Long msgId, @Param("preview") String preview, @Param("time") java.time.LocalDateTime time);
 }

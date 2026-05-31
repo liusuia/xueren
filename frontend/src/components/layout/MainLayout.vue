@@ -164,12 +164,16 @@ onMounted(async () => {
   contactStore.fetchFriends()
   contactStore.fetchRequests()
   groupStore.fetchGroups()
-  // 默认打开文件助手
-  const fh = convStore.list.find(c => c.targetType === 1 && c.targetId === 1)
-  if (fh && !chat.currentConv) {
-    chat.openChat(fh)
-    await chat.fetchMessages(50)
-    ui.openChat()
+  // 新注册用户自动打开文件助手
+  const isNewUser = sessionStorage.getItem('xr_new_user')
+  if (isNewUser) {
+    sessionStorage.removeItem('xr_new_user')
+    const fh = convStore.list.find(c => c.targetType === 1 && c.targetId === 1)
+    if (fh) {
+      chat.openChat(fh)
+      await chat.fetchMessages(50)
+      ui.openChat()
+    }
   }
 })
 

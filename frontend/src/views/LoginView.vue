@@ -153,6 +153,7 @@ async function onRegister() {
   loading.value = true
   try {
     await auth.register(registerForm.value)
+    sessionStorage.setItem('xr_new_user', '1')
     success('注册成功')
     router.push('/')
   } catch (e) {

@@ -178,16 +178,15 @@ public class ConversationService {
             conversation.setUnreadCount(increaseUnread ? 1 : 0);
             if (!increaseUnread) conversation.setLastReadMessageId(message.getId());
             conversationRepository.save(conversation);
+        } else if (increaseUnread) {
+            // 已存在会话：用 updateMeta 更新元信息（不覆盖 unreadCount），再原子递增加1
+            conversationRepository.updateMeta(conversation.getId(), message.getId(), buildPreview(message),
+                    message.getCreatedAt() != null ? message.getCreatedAt() : LocalDateTime.now());
+            conversationRepository.incrementUnread(conversation.getId());
         } else {
-            if (!increaseUnread) {
-                conversation.setUnreadCount(0);
-                conversation.setLastReadMessageId(message.getId());
-            }
+            conversation.setUnreadCount(0);
+            conversation.setLastReadMessageId(message.getId());
             conversationRepository.save(conversation);
-            // 对已存在会话的未读递增用原子 UPDATE，避免读-改-写竟态
-            if (increaseUnread) {
-                conversationRepository.incrementUnread(conversation.getId());
-            }
         }
     }
 

@@ -3,7 +3,6 @@ import { ref } from 'vue'
 import http from '../api/http'
 import { connectWs, disconnectWs } from '../api/ws'
 import { userApi } from '../api/endpoints'
-
 export const useAuthStore = defineStore('auth', () => {
   const token = ref(localStorage.getItem('token') || '')
   const refreshToken = ref(localStorage.getItem('refreshToken') || '')
@@ -30,7 +29,6 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   function logout() {
-    // 先同步清空本地状态（确保路由守卫立即可用）
     token.value = ''
     refreshToken.value = ''
     user.value = null
@@ -38,8 +36,9 @@ export const useAuthStore = defineStore('auth', () => {
     localStorage.removeItem('refreshToken')
     localStorage.removeItem('user')
     disconnectWs()
-    // 异步通知后端（不影响前端跳转）
     http.post('/auth/logout').catch(() => {})
+    // 强制刷新清空所有内存状态
+    window.location.href = '/login'
   }
 
   function restoreWs() {
