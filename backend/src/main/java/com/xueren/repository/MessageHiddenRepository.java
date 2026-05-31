@@ -1,0 +1,13 @@
+package com.xueren.repository;
+
+import com.xueren.entity.MessageHidden;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import java.util.List;
+
+public interface MessageHiddenRepository extends JpaRepository<MessageHidden, Long> {
+
+    boolean existsByUserIdAndMessageId(Long userId, Long messageId);
+
+    List<MessageHidden> findByUserIdAndMessageIdIn(Long userId, List<Long> messageIds);
+}

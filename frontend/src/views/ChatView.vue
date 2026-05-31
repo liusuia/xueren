@@ -151,7 +151,7 @@ async function sendMsg() {
   try {
     var real = await http.post('/messages', payload)
     real = mapMessage(real)
-  } catch { messages.value = messages.value.filter(m => m.id !== msg.id) }
+  } catch { messages.value = messages.value.filter(m => m.id !== optimistic.id) }
 }
 
 function openFriendChat(f) {
@@ -171,8 +171,9 @@ function applyTheme(v) { document.documentElement.setAttribute('data-theme', v) 
 onMounted(() => {
   applyTheme(theme.value)
   loadAll()
+  // pkt 已被 ws.js 解析为对象，不要再 JSON.parse
   addWsListener((pkt) => {
-    try { const p = JSON.parse(pkt); if (p.type === 'NEW_MESSAGE') loadAll() } catch {}
+    if (pkt.type === 'NEW_MESSAGE') loadAll()
   })
 })
 watch(theme, applyTheme)

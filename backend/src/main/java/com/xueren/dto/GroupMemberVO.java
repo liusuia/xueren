@@ -9,8 +9,10 @@ public class GroupMemberVO {
 
     private Long userId;
     private String nickname;
+    private String remark;
     private String avatar;
     private String username;
     private Integer role;
     private Boolean isMuted;
+    private Boolean isNotificationMuted;
 }

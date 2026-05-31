@@ -72,10 +72,10 @@ public class AuthService {
         if (request.getPassword() == null || request.getPassword().isBlank()) {
             throw new BusinessException("请输入密码");
         }
-        User user = userRepository.findByUsername(request.getUsername().trim())
-                .orElseThrow(() -> new BusinessException("账号不存在，请检查用户名或先注册"));
-        if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
-            throw new BusinessException("密码错误，请重新输入");
+        // 统一错误消息，防止用户枚举
+        User user = userRepository.findByUsername(request.getUsername().trim()).orElse(null);
+        if (user == null || !passwordEncoder.matches(request.getPassword(), user.getPassword())) {
+            throw new BusinessException("用户名或密码错误");
         }
         user.setLastOnlineAt(LocalDateTime.now());
         userRepository.save(user);

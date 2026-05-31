@@ -66,6 +66,25 @@ public class ConversationService {
     }
 
     @Transactional
+    public boolean togglePin(Long userId, Integer targetType, Long targetId) {
+        Conversation conv = conversationRepository
+                .findByUserIdAndTargetTypeAndTargetId(userId, targetType, targetId)
+                .orElseGet(() -> {
+                    Conversation c = new Conversation();
+                    c.setUserId(userId);
+                    c.setTargetType(targetType);
+                    c.setTargetId(targetId);
+                    c.setUnreadCount(0);
+                    c.setIsPinned(0);
+                    return c;
+                });
+        boolean newPinned = conv.getIsPinned() == null || conv.getIsPinned() == 0;
+        conv.setIsPinned(newPinned ? 1 : 0);
+        conversationRepository.save(conv);
+        return newPinned;
+    }
+
+    @Transactional
     public void deleteConversation(Long userId, Long convId) {
         Conversation conversation = conversationRepository.findById(convId)
                 .orElseThrow(() -> new BusinessException("会话不存在"));
@@ -96,6 +115,10 @@ public class ConversationService {
         conversation.setLastMessageAt(message.getCreatedAt() != null ? message.getCreatedAt() : LocalDateTime.now());
         if (increaseUnread) {
             conversation.setUnreadCount((conversation.getUnreadCount() == null ? 0 : conversation.getUnreadCount()) + 1);
+        } else {
+            // 自己发的消息，清空未读数并更新已读位置
+            conversation.setUnreadCount(0);
+            conversation.setLastReadMessageId(message.getId());
         }
         conversationRepository.save(conversation);
     }

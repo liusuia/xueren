@@ -55,6 +55,7 @@ function doConnect() {
     startPing()
   }
 
+  // 注意：listener 收到的是已解析好的对象，不要再 JSON.parse
   socket.onmessage = (event) => {
     try {
       const packet = JSON.parse(event.data)
@@ -116,6 +117,7 @@ export function sendChat(data) {
   socket.send(JSON.stringify({ type: 'CHAT', data }))
 }
 
+// 接收到的 packet 已经是 JSON.parse 后的对象，调用方不要再 parse
 export function addWsListener(fn) {
   listeners.push(fn)
   return () => { listeners = listeners.filter((item) => item !== fn) }

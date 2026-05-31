@@ -36,6 +36,9 @@ public class GroupMember {
     @Column(name = "muted_until")
     private LocalDateTime mutedUntil;
 
+    @Column(name = "is_notification_muted")
+    private Integer isNotificationMuted;
+
     @Column(name = "joined_at", insertable = false, updatable = false)
     private LocalDateTime joinedAt;
 }

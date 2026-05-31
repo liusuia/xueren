@@ -35,6 +35,8 @@ CREATE TABLE IF NOT EXISTS `group` (
     name VARCHAR(100) NOT NULL,
     avatar VARCHAR(255),
     owner_id BIGINT NOT NULL COMMENT '群主',
+    notice VARCHAR(1000) COMMENT '群公告',
+    notice_updated_at DATETIME,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX idx_owner (owner_id)
@@ -48,6 +50,10 @@ CREATE TABLE IF NOT EXISTS group_member (
     user_id BIGINT NOT NULL,
     role TINYINT DEFAULT 3,
     nickname VARCHAR(50) COMMENT '群内昵称',
+    remark VARCHAR(50) COMMENT '个人群备注',
+    is_muted TINYINT DEFAULT 0 COMMENT '管理员禁言',
+    muted_until DATETIME COMMENT '禁言截止时间',
+    is_notification_muted TINYINT DEFAULT 0 COMMENT '消息免打扰（用户自己设置）',
     joined_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     UNIQUE KEY uk_group_user (group_id, user_id),
     INDEX idx_user_id (user_id)
@@ -97,6 +103,7 @@ CREATE TABLE IF NOT EXISTS conversation (
     last_message_at DATETIME,
     unread_count INT DEFAULT 0,
     last_read_message_id BIGINT COMMENT '该用户在此会话中读到的最新消息',
+    cleared_at DATETIME COMMENT '用户清空聊天记录时间，此时间之前的消息对自己不展示',
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     UNIQUE KEY uk_user_target (user_id, target_type, target_id),
@@ -111,6 +118,16 @@ CREATE TABLE IF NOT EXISTS message_read (
     read_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     UNIQUE KEY uk_message_user (message_id, user_id),
     INDEX idx_user_read (user_id, read_at)
+);
+
+-- 用户隐藏的消息（单条软删除）
+CREATE TABLE IF NOT EXISTS message_hidden (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    user_id BIGINT NOT NULL,
+    message_id BIGINT NOT NULL,
+    hidden_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uk_user_msg (user_id, message_id),
+    INDEX idx_user_id (user_id)
 );
 
 -- Refresh Token（配合 JWT 续期）

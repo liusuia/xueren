@@ -1,0 +1,315 @@
+<template>
+  <Teleport to="body">
+    <Transition name="slide">
+      <div class="gip-root">
+        <div class="gip-backdrop" @click="$emit('close')"></div>
+        <div class="gip-panel">
+          <div class="gip-hd">
+            <button class="gip-back-btn" @click="$emit('close')">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>
+            </button>
+            <span class="gip-hd-title">群聊信息</span>
+          </div>
+          <div class="gip-body" v-if="groupStore.currentGroup">
+            <div class="gip-top">
+              <Avatar :src="groupStore.currentGroup.avatar" :name="groupStore.currentGroup.name" :size="56" />
+              <div class="gip-name">{{ groupStore.currentGroup.name }}</div>
+            </div>
+
+            <!-- 群公告 -->
+            <div class="gip-card">
+              <div class="gip-card-hd">
+                <span>群公告</span>
+                <button v-if="groupStore.isOwner(groupStore.currentGroup.id)" class="gip-link" @click="editNotice">编辑</button>
+              </div>
+              <div class="gip-card-body">{{ cleanNotice(groupStore.currentGroup.notice) || '暂无公告' }}</div>
+            </div>
+
+            <!-- 群备注（个人可见） -->
+            <div class="gip-card">
+              <div class="gip-card-hd"><span>群备注</span></div>
+              <input class="gip-inp" :value="myRemark" placeholder="设置个人备注" @blur="onSaveRemark" @keydown.enter="$event.target.blur()" />
+            </div>
+            <!-- 我的群昵称（群内可见） -->
+            <div class="gip-card">
+              <div class="gip-card-hd"><span>我的群昵称</span></div>
+              <input class="gip-inp" :value="myNickname" placeholder="设置我在本群的昵称" @blur="onSaveNickname" @keydown.enter="$event.target.blur()" />
+            </div>
+
+            <!-- 群成员 + 邀请 -->
+            <div class="gip-card">
+              <div class="gip-card-hd"><span>群成员 ({{ groupStore.currentGroupMembers.length }})</span></div>
+              <div class="gip-members">
+                <div v-for="m in groupStore.currentGroupMembers" :key="m.userId" class="gip-mem" @click="onMemberClick(m)" @contextmenu.prevent="onMemberCtx($event, m)">
+                  <Avatar :src="m.userAvatar || m.avatar" :name="m.nickname || m.userName || m.username" :size="40" />
+                  <span class="gip-mem-name">{{ m.nickname || m.userName || m.username }}</span>
+                  <span v-if="m.role === 1" class="gip-role owner">群主</span>
+                  <span v-else-if="m.role === 2" class="gip-role admin">管理</span>
+                </div>
+                <!-- 邀请按钮：微信风格 + 号 -->
+                <div class="gip-mem gip-invite-btn" @click="showInvite = !showInvite">
+                  <div class="gip-inv-icon">+</div>
+                  <span class="gip-mem-name">邀请</span>
+                </div>
+              </div>
+              <div v-if="showInvite" class="gip-invite">
+                <div class="gip-inv-hd">选择好友邀请入群</div>
+                <div class="gip-inv-list">
+                  <div v-for="f in contactStore.friends" :key="f.userId" class="gip-inv-item" :class="{ sel: inviteList.includes(f.userId) }" @click="toggleInvite(f.userId)">
+                    <Avatar :src="f.avatar" :name="f.remark || f.nickname || f.username" :size="32" />
+                    <span>{{ f.remark || f.nickname || f.username }}</span>
+                    <svg v-if="inviteList.includes(f.userId)" viewBox="0 0 24 24" width="18" height="18" fill="#07C160"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+                  </div>
+                </div>
+                <button v-if="inviteList.length" class="gip-btn primary" @click="doInvite">邀请 {{ inviteList.length }} 人</button>
+              </div>
+            </div>
+
+            <!-- 操作列表 -->
+            <div class="gip-card">
+              <div class="gip-ops">
+                <button class="gip-op" @click="toggleMute">
+                  <span>消息免打扰</span>
+                  <span class="gip-toggle" :class="{ on: myMuted }"></span>
+                </button>
+                <button class="gip-op" @click="onClearHistory"><span>清空聊天记录</span><svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" opacity="0.3"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6z"/></svg></button>
+                <button class="gip-op" @click="onSearchChat"><span>查找聊天记录</span><svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" opacity="0.3"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6z"/></svg></button>
+                <button class="gip-op" @click="onTopConv">
+                  <span>置顶聊天</span>
+                  <span class="gip-toggle" :class="{ on: isTopped }"></span>
+                </button>
+              </div>
+            </div>
+
+            <div class="gip-footer">
+              <button v-if="!groupStore.isOwner(groupStore.currentGroup.id)" class="gip-btn danger" @click="onQuit">退出群聊</button>
+              <button v-if="groupStore.isOwner(groupStore.currentGroup.id)" class="gip-btn danger" @click="onDismiss">解散群聊</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Transition>
+  </Teleport>
+
+  <ContextMenu :visible="ctxVisible" :items="ctxItems" :position="ctxPos" @close="ctxVisible = false" @action="onCtxAction" />
+</template>
+
+<script setup>
+import { ref, computed, watch, onMounted } from 'vue'
+import Avatar from '../common/Avatar.vue'
+import ContextMenu from '../common/ContextMenu.vue'
+import { useGroupStore } from '../../stores/groups'
+import { useContactStore } from '../../stores/contacts'
+import { useAuthStore } from '../../stores/auth'
+import { useConversationStore } from '../../stores/conversations'
+import { useNotification } from '../../composables/useNotification'
+import { useConfirm } from '../../composables/useConfirm'
+
+const groupStore = useGroupStore()
+const contactStore = useContactStore()
+const auth = useAuthStore()
+const convStore = useConversationStore()
+const { success, error } = useNotification()
+const cfm = useConfirm()
+const emit = defineEmits(['close', 'searchChat', 'clearChat', 'showUserInfo'])
+
+const ctxVisible = ref(false)
+const ctxPos = ref({ x: 0, y: 0 })
+const ctxItems = ref([])
+let ctxMember = null
+const showInvite = ref(false)
+const inviteList = ref([])
+
+// 清洗旧版 JSON 脏数据：{"remark":"xxx"} → xxx
+function clean(v) {
+  if (!v) return ''
+  const s = String(v)
+  // 匹配 {"remark":"..."} 或 {"nickname":"..."}
+  try { const p = JSON.parse(s); if (p && typeof p === 'object') return p.remark || p.nickname || p.notice || s } catch {}
+  return s
+}
+function cleanNotice(v) {
+  if (!v) return ''
+  const s = String(v)
+  try { const p = JSON.parse(s); if (p && typeof p === 'object') return p.notice || s } catch {}
+  return s
+}
+
+const me = computed(() => groupStore.currentGroupMembers.find(m => m.userId === auth.user?.id))
+const myNickname = computed(() => clean(me.value?.nickname || ''))
+const myRemark = computed(() => {
+  const v = me.value?.remark || groupStore.list.find(x => x.id === groupStore.currentGroup?.id)?.remark
+  return clean(v)
+})
+const myMuted = computed(() => !!(me.value?.isNotificationMuted))
+
+async function editNotice() {
+  const notice = await cfm.prompt('编辑群公告（仅群主）', { inputPlaceholder: '输入群公告', inputDefault: cleanNotice(groupStore.currentGroup?.notice) || '' })
+  if (notice !== false && notice !== undefined) {
+    try { await groupStore.updateNotice(groupStore.currentGroup.id, notice) } catch (e) { error(e.message || '修改失败') }
+  }
+}
+async function onSaveNickname(e) {
+  const val = e.target.value.trim()
+  if (val !== myNickname.value) {
+    await groupStore.updateGroupNickname(groupStore.currentGroup.id, val)
+  }
+}
+async function onSaveRemark(e) {
+  const val = e.target.value.trim()
+  if (val !== myRemark.value) {
+    await groupStore.updateGroupRemark(groupStore.currentGroup.id, val)
+  }
+}
+async function toggleMute() {
+  try {
+    const gid = groupStore.currentGroup.id
+    const newMuted = !myMuted.value
+    // 1. 立即更新本地 UI
+    if (me.value) me.value.isNotificationMuted = newMuted ? 1 : 0
+    // 2. 更新会话列表免打扰标志
+    convStore.setMuted(2, gid, newMuted)
+    // 3. 异步同步到后端
+    await groupStore.toggleMuteNotification(gid, newMuted)
+  } catch (e) {
+    // 回滚本地状态
+    if (me.value) me.value.isNotificationMuted = myMuted.value ? 1 : 0
+    convStore.setMuted(2, groupStore.currentGroup.id, myMuted.value)
+    error(e.message || '操作失败')
+  }
+}
+async function onClearHistory() {
+  const ok = await cfm.info('确定清空聊天记录？清空后将无法恢复。')
+  if (!ok) return
+  const conv = convStore.list.find(c => c.targetType === 2 && c.targetId === groupStore.currentGroup.id)
+  if (conv) { conv.lastMessagePreview = ''; conv.unreadCount = 0; conv.lastMessageAt = null }
+  emit('clearChat', { targetType: 2, targetId: groupStore.currentGroup.id })
+}
+function onSearchChat() {
+  emit('close')
+  emit('searchChat')
+}
+const isTopped = computed(() => convStore.isPinned(2, groupStore.currentGroup?.id))
+function onTopConv() {
+  convStore.togglePinned(2, groupStore.currentGroup.id)
+  convStore.fetchConversations() // 刷新排序
+}
+function onMemberClick(m) {
+  if (m.userId !== auth.user?.id) {
+    emit('showUserInfo', m.userId)
+  }
+}
+function toggleInvite(uid) {
+  const idx = inviteList.value.indexOf(uid)
+  if (idx >= 0) inviteList.value.splice(idx, 1); else inviteList.value.push(uid)
+}
+async function doInvite() {
+  try { await groupStore.addMembers(groupStore.currentGroup.id, inviteList.value); success('邀请成功'); inviteList.value = []; showInvite.value = false } catch (e) { error(e.message) }
+}
+function onMemberCtx(e, member) {
+  ctxMember = member; const items = []
+  if (groupStore.currentGroup.ownerId === auth.user?.id) {
+    items.push({ label: member.role === 2 ? '取消管理员' : '设为管理员', action: 'toggleAdmin' })
+    items.push({ label: '转让群主', action: 'transferOwner' })
+  }
+  if (groupStore.isAdmin(groupStore.currentGroup.id) && member.role === 3) {
+    const muted = !!(member.isMuted)
+    items.push({ label: muted ? '解除禁言' : '禁言', action: 'toggleMute' })
+    items.push({ label: '移出群聊', action: 'remove', danger: true })
+  }
+  if (!items.length) return
+  ctxItems.value = items; ctxPos.value = { x: e.clientX, y: e.clientY }; ctxVisible.value = true
+}
+async function onCtxAction(item) {
+  ctxVisible.value = false; if (!ctxMember) return; const gid = groupStore.currentGroup.id
+  if (item.action === 'toggleAdmin') { await groupStore.setAdmin(gid, ctxMember.userId, ctxMember.role !== 2); success('已更新') }
+  else if (item.action === 'transferOwner') { await groupStore.transferOwner(gid, ctxMember.userId); success('已转让'); emit('close') }
+  else if (item.action === 'toggleMute') { await groupStore.muteMember(gid, ctxMember.userId, !ctxMember.isMuted); success('已更新') }
+  else if (item.action === 'remove') { await groupStore.removeMember(gid, ctxMember.userId); success('已移出') }
+}
+async function onQuit() { if (await cfm.danger('确定退出群聊？', { confirmText: '退出' })) { await groupStore.quitGroup(groupStore.currentGroup.id); emit('close') } }
+async function onDismiss() { if (await cfm.danger('确定解散群聊？此操作不可撤销。', { confirmText: '解散' })) { await groupStore.dismissGroup(groupStore.currentGroup.id); emit('close') } }
+</script>
+
+<style scoped>
+.gip-root { position: fixed; inset: 0; z-index: 150; display: flex; }
+.gip-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,0.4); }
+.gip-panel {
+  position: relative; z-index: 1; margin-left: auto;
+  width: 340px; height: 100%; background: var(--bg-dialog, #1e2028);
+  box-shadow: -4px 0 24px rgba(0,0,0,0.3); display: flex; flex-direction: column;
+}
+.gip-hd { display: flex; align-items: center; gap: 8px; padding: 14px 16px; border-bottom: 1px solid var(--border, #2e3038); flex-shrink: 0; }
+.gip-back-btn { width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: none; background: transparent; color: var(--text-secondary, #bbb); cursor: pointer; border-radius: 4px; }
+.gip-back-btn:hover { background: var(--bg-hover, rgba(255,255,255,0.06)); }
+.gip-hd-title { font-size: 15px; font-weight: 600; color: var(--text-primary, #e8e8ea); }
+.gip-body { flex: 1; overflow-y: auto; padding: 16px; }
+
+.gip-top { display: flex; flex-direction: column; align-items: center; margin-bottom: 16px; }
+.gip-name { font-size: 17px; font-weight: 600; color: var(--text-primary, #e8e8ea); margin-top: 8px; }
+
+.gip-card { background: var(--bg-input, #22252d); border-radius: 8px; padding: 12px 14px; margin-bottom: 12px; }
+.gip-card-hd { display: flex; justify-content: space-between; align-items: center; font-size: 12px; font-weight: 600; color: var(--text-muted, #999); margin-bottom: 8px; }
+.gip-card-body { font-size: 13px; color: var(--text-secondary, #bbb); line-height: 1.5; }
+.gip-link { background: none; border: none; color: var(--accent, #f7931e); font-size: 12px; cursor: pointer; }
+
+.gip-inp { width: 100%; border: none; border-radius: 4px; padding: 6px 10px; font-size: 13px; color: var(--text-primary, #e8e8ea); background: transparent; outline: none; }
+
+.gip-members { display: flex; flex-wrap: wrap; gap: 6px; }
+.gip-mem { display: flex; flex-direction: column; align-items: center; gap: 2px; cursor: pointer; padding: 4px; border-radius: 6px; transition: background 0.12s; width: 56px; }
+.gip-mem:hover { background: var(--bg-hover, rgba(255,255,255,0.04)); }
+.gip-mem-name { font-size: 10px; color: var(--text-secondary, #bbb); max-width: 52px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: center; }
+.gip-role { font-size: 8px; padding: 0px 3px; border-radius: 2px; }
+.gip-role.owner { background: #f7931e; color: #fff; }
+.gip-role.admin { background: #1485EE; color: #fff; }
+.gip-invite-btn { }
+.gip-inv-icon {
+  width: 40px; height: 40px; border-radius: 4px; border: 1.5px dashed var(--border, #3a3c44);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px; color: var(--text-muted, #888); font-weight: 300;
+  transition: border-color 0.15s;
+}
+.gip-invite-btn:hover .gip-inv-icon { border-color: var(--accent, #f7931e); color: var(--accent, #f7931e); }
+
+.gip-invite { margin-top: 10px; padding: 8px; border-radius: 6px; background: var(--bg-dialog, #1a1d23); }
+.gip-inv-hd { font-size: 12px; color: var(--text-muted, #999); margin-bottom: 6px; }
+.gip-inv-list { max-height: 180px; overflow-y: auto; display: flex; flex-direction: column; gap: 2px; }
+.gip-inv-item { display: flex; align-items: center; gap: 10px; padding: 6px 8px; cursor: pointer; border-radius: 4px; font-size: 13px; color: var(--text-primary, #e8e8ea); }
+.gip-inv-item:hover { background: var(--bg-hover, rgba(255,255,255,0.04)); }
+.gip-inv-item.sel { background: rgba(247,147,30,0.1); }
+.gip-inv-item svg { margin-left: auto; flex-shrink: 0; }
+
+.gip-ops { display: flex; flex-direction: column; }
+.gip-op {
+  display: flex; justify-content: space-between; align-items: center;
+  width: 100%; padding: 10px 0; border: none; background: transparent;
+  color: var(--text-primary, #e8e8ea); font-size: 13px; cursor: pointer;
+  border-bottom: 1px solid rgba(255,255,255,0.04); text-align: left;
+}
+.gip-op:last-child { border-bottom: none; }
+.gip-op:hover { opacity: 0.8; }
+.gip-toggle {
+  width: 40px; height: 22px; border-radius: 11px; background: #555;
+  position: relative; transition: background .2s; flex-shrink: 0;
+}
+.gip-toggle::after {
+  content: ''; position: absolute; top: 2px; left: 2px;
+  width: 18px; height: 18px; border-radius: 50%; background: #fff;
+  transition: transform .2s;
+}
+.gip-toggle.on { background: var(--accent, #f7931e); }
+.gip-toggle.on::after { transform: translateX(18px); }
+
+.gip-footer { margin-top: 12px; padding-bottom: 20px; }
+.gip-btn { width: 100%; padding: 10px; border: none; border-radius: 6px; font-size: 13px; cursor: pointer; font-weight: 500; }
+.gip-btn.primary { background: var(--accent, #f7931e); color: #fff; }
+.gip-btn.danger { background: transparent; color: #e74c3c; }
+.gip-btn.danger:hover { background: rgba(231,76,60,0.08); }
+
+.slide-enter-active, .slide-leave-active { transition: all 0.25s ease; }
+.slide-enter-from .gip-panel { transform: translateX(100%); }
+.slide-enter-to .gip-panel { transform: translateX(0); }
+.slide-leave-to .gip-panel { transform: translateX(100%); }
+.slide-enter-from .gip-backdrop, .slide-leave-to .gip-backdrop { opacity: 0; }
+.slide-enter-to .gip-backdrop, .slide-leave-from .gip-backdrop { opacity: 1; }
+</style>

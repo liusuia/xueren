@@ -36,4 +36,11 @@ public class ConversationController {
         conversationService.deleteConversation(AuthHolder.currentUserId(), convId);
         return ApiResponse.ok("会话已删除", null);
     }
+
+    @PutMapping("/pin")
+    public ApiResponse<Boolean> togglePin(@RequestParam Integer targetType,
+                                          @RequestParam Long targetId) {
+        boolean pinned = conversationService.togglePin(AuthHolder.currentUserId(), targetType, targetId);
+        return ApiResponse.ok(pinned ? "已置顶" : "已取消置顶", pinned);
+    }
 }

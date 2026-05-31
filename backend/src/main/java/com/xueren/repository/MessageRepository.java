@@ -3,9 +3,12 @@ package com.xueren.repository;
 import com.xueren.entity.Message;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 public interface MessageRepository extends JpaRepository<Message, Long> {
@@ -15,18 +18,23 @@ public interface MessageRepository extends JpaRepository<Message, Long> {
             WHERE m.chatType = 1 AND m.isRecalled = 0
               AND ((m.fromUserId = :userId AND m.toUserId = :peerId)
                 OR (m.fromUserId = :peerId AND m.toUserId = :userId))
+              AND (:clearedAt IS NULL OR m.createdAt > :clearedAt)
             ORDER BY m.id DESC
             """)
     List<Message> findSingleChat(@Param("userId") Long userId,
                                  @Param("peerId") Long peerId,
+                                 @Param("clearedAt") LocalDateTime clearedAt,
                                  Pageable pageable);
 
     @Query("""
             SELECT m FROM Message m
             WHERE m.chatType = 2 AND m.groupId = :groupId AND m.isRecalled = 0
+              AND (:clearedAt IS NULL OR m.createdAt > :clearedAt)
             ORDER BY m.id DESC
             """)
-    List<Message> findGroupChat(@Param("groupId") Long groupId, Pageable pageable);
+    List<Message> findGroupChat(@Param("groupId") Long groupId,
+                                 @Param("clearedAt") LocalDateTime clearedAt,
+                                 Pageable pageable);
 
     @Query("""
             SELECT m FROM Message m
@@ -44,4 +52,16 @@ public interface MessageRepository extends JpaRepository<Message, Long> {
     List<Message> searchByContent(@Param("userId") Long userId,
                                   @Param("keyword") String keyword,
                                   Pageable pageable);
+
+    // 清空单聊聊天记录
+    @Modifying
+    @Transactional
+    @Query("DELETE FROM Message m WHERE m.chatType = 1 AND ((m.fromUserId = :userId AND m.toUserId = :peerId) OR (m.fromUserId = :peerId AND m.toUserId = :userId))")
+    int deleteSingleChat(@Param("userId") Long userId, @Param("peerId") Long peerId);
+
+    // 清空群聊聊天记录
+    @Modifying
+    @Transactional
+    @Query("DELETE FROM Message m WHERE m.chatType = 2 AND m.groupId = :groupId")
+    int deleteGroupChat(@Param("groupId") Long groupId);
 }

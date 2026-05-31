@@ -5,31 +5,35 @@ import com.xueren.common.Constants;
 import com.xueren.dto.MessageVO;
 import com.xueren.dto.SendMessageRequest;
 import com.xueren.entity.Message;
+import com.xueren.entity.MessageHidden;
 import com.xueren.entity.MessageRead;
 import com.xueren.entity.StoredFile;
 import com.xueren.entity.User;
 import com.xueren.repository.ConversationRepository;
+import com.xueren.repository.MessageHiddenRepository;
 import com.xueren.repository.MessageReadRepository;
 import com.xueren.repository.MessageRepository;
 import com.xueren.repository.StoredFileRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
 public class MessageService {
 
+    private static final Logger log = LoggerFactory.getLogger(MessageService.class);
+
     private final MessageRepository messageRepository;
     private final MessageReadRepository messageReadRepository;
     private final StoredFileRepository storedFileRepository;
     private final ConversationRepository conversationRepository;
+    private final MessageHiddenRepository messageHiddenRepository;
     private final GroupService groupService;
     private final FriendService friendService;
     private final ConversationService conversationService;
@@ -40,6 +44,7 @@ public class MessageService {
                           MessageReadRepository messageReadRepository,
                           StoredFileRepository storedFileRepository,
                           ConversationRepository conversationRepository,
+                          MessageHiddenRepository messageHiddenRepository,
                           FriendService friendService,
                           GroupService groupService,
                           ConversationService conversationService,
@@ -49,6 +54,7 @@ public class MessageService {
         this.messageReadRepository = messageReadRepository;
         this.storedFileRepository = storedFileRepository;
         this.conversationRepository = conversationRepository;
+        this.messageHiddenRepository = messageHiddenRepository;
         this.friendService = friendService;
         this.groupService = groupService;
         this.conversationService = conversationService;
@@ -100,16 +106,46 @@ public class MessageService {
     }
 
     public List<MessageVO> listSingleChat(Long userId, Long peerId, int limit) {
-        List<Message> messages = messageRepository.findSingleChat(userId, peerId, PageRequest.of(0, limit));
+        LocalDateTime clearedAt = conversationRepository
+                .findByUserIdAndTargetTypeAndTargetId(userId, Constants.TARGET_USER, peerId)
+                .map(c -> c.getClearedAt())
+                .orElse(null);
+        List<Message> messages = new ArrayList<>(messageRepository.findSingleChat(userId, peerId, clearedAt, PageRequest.of(0, limit)));
+        messages = filterHidden(userId, messages);
         Collections.reverse(messages);
         return messages.stream().map(this::toVO).toList();
     }
 
     public List<MessageVO> listGroupChat(Long userId, Long groupId, int limit) {
         groupService.ensureMember(groupId, userId);
-        List<Message> messages = messageRepository.findGroupChat(groupId, PageRequest.of(0, limit));
+        LocalDateTime clearedAt = conversationRepository
+                .findByUserIdAndTargetTypeAndTargetId(userId, Constants.TARGET_GROUP, groupId)
+                .map(c -> c.getClearedAt())
+                .orElse(null);
+        log.info("listGroupChat userId={} groupId={} clearedAt={}", userId, groupId, clearedAt);
+        List<Message> messages = new ArrayList<>(messageRepository.findGroupChat(groupId, clearedAt, PageRequest.of(0, limit)));
+        log.info("listGroupChat after DB query: {} messages", messages.size());
+        messages = filterHidden(userId, messages);
+        log.info("listGroupChat after filterHidden: {} messages", messages.size());
         Collections.reverse(messages);
         return messages.stream().map(this::toVO).toList();
+    }
+
+    /** 过滤当前用户隐藏的消息，返回可变列表供后续 Collections.reverse 使用 */
+    private List<Message> filterHidden(Long userId, List<Message> messages) {
+        if (messages.isEmpty()) return new ArrayList<>(messages);
+        try {
+            List<Long> msgIds = messages.stream().map(Message::getId).collect(Collectors.toList());
+            Set<Long> hiddenIds = messageHiddenRepository.findByUserIdAndMessageIdIn(userId, msgIds)
+                    .stream().map(h -> h.getMessageId()).collect(Collectors.toSet());
+            if (hiddenIds.isEmpty()) return new ArrayList<>(messages);
+            return messages.stream()
+                    .filter(m -> !hiddenIds.contains(m.getId()))
+                    .collect(Collectors.toCollection(ArrayList::new));
+        } catch (Exception e) {
+            log.warn("filterHidden failed, returning all messages", e);
+            return new ArrayList<>(messages);
+        }
     }
 
     @Transactional
@@ -243,5 +279,37 @@ public class MessageService {
             }
         }
         return new ArrayList<>(conversationIds);
+    }
+
+    @Transactional
+    public void clearChatHistory(Long userId, Integer chatType, Long targetId) {
+        if (chatType == Constants.CHAT_SINGLE) {
+            friendService.ensureFriend(userId, targetId);
+        } else {
+            groupService.ensureMember(targetId, userId);
+        }
+        // 软删除：只清空当前用户的视角，设置 clearedAt 为当前时间
+        conversationRepository
+                .findByUserIdAndTargetTypeAndTargetId(userId, chatType == Constants.CHAT_SINGLE ? Constants.TARGET_USER : Constants.TARGET_GROUP, targetId)
+                .ifPresent(conv -> {
+                    conv.setClearedAt(LocalDateTime.now());
+                    conv.setUnreadCount(0);
+                    conversationRepository.save(conv);
+                });
+    }
+
+    /** 隐藏单条消息（仅对自己不可见，不删除数据库记录） */
+    @Transactional
+    public void hideMessage(Long userId, Long messageId) {
+        Message message = messageRepository.findById(messageId)
+                .orElseThrow(() -> new BusinessException("消息不存在"));
+        // 验证有权访问该消息
+        assertCanAccessMessage(userId, message);
+        if (!messageHiddenRepository.existsByUserIdAndMessageId(userId, messageId)) {
+            MessageHidden hidden = new MessageHidden();
+            hidden.setUserId(userId);
+            hidden.setMessageId(messageId);
+            messageHiddenRepository.save(hidden);
+        }
     }
 }

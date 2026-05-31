@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import http from '../api/http'
 import { connectWs, disconnectWs } from '../api/ws'
+import { userApi } from '../api/endpoints'
 
 export const useAuthStore = defineStore('auth', () => {
   const token = ref(localStorage.getItem('token') || '')
@@ -39,10 +40,30 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   function restoreWs() {
-    if (token.value) {
-      connectWs(token.value)
-    }
+    if (token.value) connectWs(token.value)
   }
 
-  return { token, refreshToken, user, register, login, logout, restoreWs }
+  async function fetchMe() {
+    const data = await userApi.getMe()
+    user.value = data
+    localStorage.setItem('user', JSON.stringify(data))
+  }
+
+  async function updateProfile(form) {
+    const data = await userApi.updateProfile(form)
+    user.value = data
+    localStorage.setItem('user', JSON.stringify(data))
+    return data
+  }
+
+  async function uploadAvatar(file) {
+    const data = await userApi.uploadAvatar(file)
+    user.value = data
+    localStorage.setItem('user', JSON.stringify(data))
+    return data
+  }
+
+  const currentUserId = () => user.value?.id
+
+  return { token, refreshToken, user, register, login, logout, restoreWs, fetchMe, updateProfile, uploadAvatar, currentUserId }
 })

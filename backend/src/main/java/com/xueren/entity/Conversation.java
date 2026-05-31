@@ -40,6 +40,12 @@ public class Conversation {
     @Column(name = "last_read_message_id")
     private Long lastReadMessageId;
 
+    @Column(name = "cleared_at")
+    private LocalDateTime clearedAt;
+
+    @Column(name = "is_pinned")
+    private Integer isPinned;
+
     @Column(name = "created_at", insertable = false, updatable = false)
     private LocalDateTime createdAt;
 

@@ -75,43 +75,34 @@ public class GroupController {
     }
 
     @PutMapping("/{groupId}/remark")
-    public ApiResponse<Void> updateMemberNickname(@PathVariable Long groupId, @RequestBody String nickname) {
-        groupService.updateMemberNickname(AuthHolder.currentUserId(), groupId, nickname);
+    public ApiResponse<Void> updateMemberNickname(@PathVariable Long groupId, @RequestBody Map<String, String> body) {
+        groupService.updateMemberNickname(AuthHolder.currentUserId(), groupId, body.get("remark"));
         return ApiResponse.ok("群备注已更新", null);
     }
 
     @PutMapping("/{groupId}/my-remark")
-    public ApiResponse<Void> updateMyGroupRemark(@PathVariable Long groupId, @RequestBody String remark) {
-        groupService.updateMyGroupRemark(AuthHolder.currentUserId(), groupId, remark);
+    public ApiResponse<Void> updateMyGroupRemark(@PathVariable Long groupId, @RequestBody Map<String, String> body) {
+        groupService.updateMyGroupRemark(AuthHolder.currentUserId(), groupId, body.get("remark"));
         return ApiResponse.ok("群聊备注已更新", null);
     }
 
     @PutMapping("/{groupId}/notice")
-    public ApiResponse<Void> updateNotice(@PathVariable Long groupId, @RequestBody String notice) {
-        groupService.updateNotice(AuthHolder.currentUserId(), groupId, notice);
+    public ApiResponse<Void> updateNotice(@PathVariable Long groupId, @RequestBody Map<String, String> body) {
+        groupService.updateNotice(AuthHolder.currentUserId(), groupId, body.get("notice"));
         return ApiResponse.ok("群公告已更新", null);
     }
 
-    /**
-     * 搜索群组
-     */
     @GetMapping("/search")
     public ApiResponse<List<GroupVO>> search(@RequestParam String keyword) {
         return ApiResponse.ok(groupService.searchGroups(keyword));
     }
 
-    /**
-     * 加入群组
-     */
     @PostMapping("/{groupId}/join")
     public ApiResponse<Void> joinGroup(@PathVariable Long groupId) {
         groupService.joinGroup(AuthHolder.currentUserId(), groupId);
         return ApiResponse.ok("已加入群组", null);
     }
 
-    /**
-     * 设置/取消管理员
-     */
     @PutMapping("/{groupId}/admin/{userId}")
     public ApiResponse<Void> setAdmin(@PathVariable Long groupId, @PathVariable Long userId,
                                        @RequestBody Map<String, Boolean> body) {
@@ -119,9 +110,7 @@ public class GroupController {
         return ApiResponse.ok("操作成功", null);
     }
 
-    /**
-     * 禁言/取消禁言
-     */
+    // 管理员禁言成员
     @PutMapping("/{groupId}/mute/{userId}")
     public ApiResponse<Void> muteMember(@PathVariable Long groupId, @PathVariable Long userId,
                                          @RequestBody Map<String, Boolean> body) {
@@ -129,26 +118,24 @@ public class GroupController {
         return ApiResponse.ok("操作成功", null);
     }
 
-    /**
-     * 上传群文件
-     */
+    // 消息免打扰（自己设自己的）
+    @PutMapping("/{groupId}/mute-notification")
+    public ApiResponse<Void> muteNotification(@PathVariable Long groupId, @RequestBody Map<String, Boolean> body) {
+        groupService.muteNotification(AuthHolder.currentUserId(), groupId, body.getOrDefault("mute", true));
+        return ApiResponse.ok("操作成功", null);
+    }
+
     @PostMapping("/{groupId}/files")
     public ApiResponse<GroupFileVO> uploadFile(@PathVariable Long groupId, @RequestBody Map<String, Long> body) {
         return ApiResponse.ok(groupService.uploadGroupFile(
                 AuthHolder.currentUserId(), groupId, body.get("fileId")));
     }
 
-    /**
-     * 查看群文件列表
-     */
     @GetMapping("/{groupId}/files")
     public ApiResponse<List<GroupFileVO>> listFiles(@PathVariable Long groupId) {
         return ApiResponse.ok(groupService.listGroupFiles(AuthHolder.currentUserId(), groupId));
     }
 
-    /**
-     * 更新群头像
-     */
     @PutMapping("/{groupId}/avatar")
     public ApiResponse<GroupVO> updateAvatar(@PathVariable Long groupId, @RequestBody Map<String, String> body) {
         groupService.ensureMember(groupId, AuthHolder.currentUserId());

@@ -4,6 +4,9 @@
   "description": "```\r xueren/\r ├── sql/           # 数据库脚本\r ├── scripts/       # MySQL 安装脚本\r ├── backend/       # Spring Boot + Netty\r └── frontend/      # Vue 3 前端\r ```",
   "main": "index.js",
   "scripts": {
+    "start": "start.bat",
+    "start:backend": "cd backend && java -jar target/xueren-backend-1.0.0.jar",
+    "start:frontend": "cd frontend && npx vite --host 0.0.0.0 --port 5173",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],

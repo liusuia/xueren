@@ -50,6 +50,27 @@ input, textarea, select, button {
   --el-fill-color-light: #f7f8fa;
   --scrollbar-thumb: #ccc;
   --scrollbar-thumb-hover: #bbb;
+
+  /* 应用层 CSS 变量 (light) */
+  --accent: #f7931e;
+  --accent-hover: #e67e22;
+  --bg-main: #e8e8e8;
+  --bg-dialog: #ffffff;
+  --bg-input: #f0f0f0;
+  --bg-hover: rgba(0,0,0,0.04);
+  --bg-active: rgba(247,147,30,0.12);
+  --bg-date: rgba(0,0,0,0.05);
+  --nav-bg: #2e2e32;
+  --list-bg: #f7f7f7;
+  --chat-bg: #f5f5f5;
+  --border: #e0e0e0;
+  --border-input: #d0d0d0;
+  --text-primary: #1a1a1e;
+  --text-secondary: #555;
+  --text-muted: #999;
+  --text-placeholder: #bbb;
+  --bubble-other: #ffffff;
+  --shadow: 0 2px 12px rgba(0,0,0,0.08);
 }
 [data-theme="dark"] {
   --el-color-primary: #f7931e;
@@ -74,6 +95,27 @@ input, textarea, select, button {
   --el-border-color-base: #3a3c44;
   --scrollbar-thumb: #444;
   --scrollbar-thumb-hover: #555;
+
+  /* 应用层 CSS 变量 (dark) — 微信暗色风格 */
+  --accent: #f7931e;
+  --accent-hover: #e67e22;
+  --bg-main: #111318;
+  --bg-dialog: #1e2028;
+  --bg-input: #2a2d35;
+  --bg-hover: rgba(255,255,255,0.04);
+  --bg-active: rgba(247,147,30,0.12);
+  --bg-date: rgba(255,255,255,0.05);
+  --nav-bg: #16181d;
+  --list-bg: #1a1d23;
+  --chat-bg: #14161b;
+  --border: #2e3038;
+  --border-input: #3a3c44;
+  --text-primary: #e4e6eb;
+  --text-secondary: #b0b3b8;
+  --text-muted: #777;
+  --text-placeholder: #555;
+  --bubble-other: #262930;
+  --shadow: 0 2px 12px rgba(0,0,0,0.3);
 }
 .el-overlay { background-color: var(--el-overlay-color) !important; }
 .el-dialog { border-radius: 12px !important; }

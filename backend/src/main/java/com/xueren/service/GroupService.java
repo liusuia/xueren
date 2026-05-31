@@ -108,10 +108,12 @@ public class GroupService {
                             return GroupMemberVO.builder()
                                     .userId(m.getUserId())
                                     .nickname(displayName)
+                                    .remark(m.getRemark())
                                     .avatar(user.getAvatar())
                                     .username(user.getUsername())
                                     .role(m.getRole())
                                     .isMuted(m.getIsMuted() != null && m.getIsMuted() == 1)
+                                    .isNotificationMuted(m.getIsNotificationMuted() != null && m.getIsNotificationMuted() == 1)
                                     .build();
                         })
                         .toList())
@@ -305,6 +307,15 @@ public class GroupService {
         target.setIsMuted(mute ? 1 : 0);
         target.setMutedUntil(mute ? LocalDateTime.now().plusDays(365) : null);
         groupMemberRepository.save(target);
+    }
+
+    // 消息免打扰（自己给自己设，不影响禁言状态）
+    @Transactional
+    public void muteNotification(Long userId, Long groupId, boolean mute) {
+        GroupMember self = groupMemberRepository.findByGroupIdAndUserId(groupId, userId)
+                .orElseThrow(() -> new BusinessException("不是群成员"));
+        self.setIsNotificationMuted(mute ? 1 : 0);
+        groupMemberRepository.save(self);
     }
 
     /**

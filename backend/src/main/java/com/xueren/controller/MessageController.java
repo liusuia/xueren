@@ -53,4 +53,16 @@ public class MessageController {
     public ApiResponse<List<Long>> searchConversations(@RequestParam String keyword) {
         return ApiResponse.ok(messageService.searchConversationsByContent(AuthHolder.currentUserId(), keyword));
     }
+
+    @DeleteMapping("/clear")
+    public ApiResponse<Void> clearHistory(@RequestParam Integer chatType, @RequestParam Long targetId) {
+        messageService.clearChatHistory(AuthHolder.currentUserId(), chatType, targetId);
+        return ApiResponse.ok("已清空", null);
+    }
+
+    @PostMapping("/{messageId}/hide")
+    public ApiResponse<Void> hideMessage(@PathVariable Long messageId) {
+        messageService.hideMessage(AuthHolder.currentUserId(), messageId);
+        return ApiResponse.ok("已删除", null);
+    }
 }
