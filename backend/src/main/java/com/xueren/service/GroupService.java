@@ -6,6 +6,7 @@ import com.xueren.dto.CreateGroupRequest;
 import com.xueren.dto.GroupFileVO;
 import com.xueren.dto.GroupMemberVO;
 import com.xueren.dto.GroupVO;
+import com.xueren.dto.MessageVO;
 import com.xueren.dto.UserVO;
 import com.xueren.entity.ChatGroup;
 import com.xueren.entity.GroupFile;
@@ -17,12 +18,20 @@ import com.xueren.repository.GroupFileRepository;
 import com.xueren.repository.GroupMemberRepository;
 import com.xueren.repository.StoredFileRepository;
 import com.xueren.repository.UserRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import javax.sql.DataSource;
+import java.sql.Connection;
 
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.function.Function;
+import java.util.Map;
+import java.util.HashMap;
 import java.util.stream.Collectors;
 
 @Service
@@ -34,19 +43,27 @@ public class GroupService {
     private final StoredFileRepository storedFileRepository;
     private final UserService userService;
     private final UserRepository userRepository;
+    private final JdbcTemplate jdbc;
+    private final DataSource dataSource;
+    @Lazy @Autowired(required = false)
+    private MessagePushService pushService;
 
     public GroupService(ChatGroupRepository chatGroupRepository,
                         GroupMemberRepository groupMemberRepository,
                         GroupFileRepository groupFileRepository,
                         StoredFileRepository storedFileRepository,
                         UserService userService,
-                        UserRepository userRepository) {
+                        UserRepository userRepository,
+                        JdbcTemplate jdbc,
+                        DataSource dataSource) {
         this.chatGroupRepository = chatGroupRepository;
         this.groupMemberRepository = groupMemberRepository;
         this.groupFileRepository = groupFileRepository;
         this.storedFileRepository = storedFileRepository;
         this.userService = userService;
         this.userRepository = userRepository;
+        this.jdbc = jdbc;
+        this.dataSource = dataSource;
     }
 
     @Transactional
@@ -107,6 +124,7 @@ public class GroupService {
                 .remark(remark)
                 .notice(group.getNotice())
                 .noticeUpdatedAt(group.getNoticeUpdatedAt())
+                .joinMode(group.getJoinMode())
                 .members(members.stream()
                         .map(m -> userMap.get(m.getUserId()))
                         .filter(Objects::nonNull)
@@ -229,6 +247,21 @@ public class GroupService {
                 .orElseThrow(() -> new BusinessException("用户不在群中"));
 
         groupMemberRepository.delete(member);
+        // 发系统消息：您已被移除群聊
+        User kicked = userRepository.findById(userId).orElse(null);
+        String name = kicked != null ? (kicked.getNickname() != null ? kicked.getNickname() : kicked.getUsername()) : "用户";
+        String sysMsg = name + "已被移出群聊";
+        jdbc.update("INSERT INTO message (chat_type, from_user_id, group_id, content, msg_type, created_at) VALUES (?,?,?,?,?,NOW())",
+                Constants.CHAT_GROUP, userId, groupId, sysMsg, Constants.MSG_SYSTEM);
+        // 更新所有成员会话预览
+        for (var m : groupMemberRepository.findByGroupId(groupId)) {
+            jdbc.update("INSERT INTO conversation (user_id, target_type, target_id, last_message_preview, last_message_at) VALUES (?,2,?,?,NOW()) ON DUPLICATE KEY UPDATE last_message_preview=?, last_message_at=NOW()",
+                    m.getUserId(), groupId, sysMsg, sysMsg);
+        }
+        // 更新被踢用户的会话预览
+        jdbc.update("INSERT INTO conversation (user_id, target_type, target_id, last_message_preview, last_message_at) VALUES (?,2,?,?,NOW()) ON DUPLICATE KEY UPDATE last_message_preview=?, last_message_at=NOW()",
+                userId, groupId, sysMsg, sysMsg);
+        try { pushSystemMessage(groupId, sysMsg); } catch (Exception ignored) {}
     }
 
     @Transactional
@@ -414,14 +447,29 @@ public class GroupService {
     @Transactional
     public void joinGroup(Long userId, Long groupId) {
         ChatGroup group = getGroup(groupId);
-
         if (groupMemberRepository.existsByGroupIdAndUserId(groupId, userId)) {
             throw new BusinessException("已在群中");
         }
-
+        int mode = group.getJoinMode() != null ? group.getJoinMode() : 0;
+        if (mode == 2) throw new BusinessException("该群禁止加入");
+        if (mode == 1) {
+            // 独立连接写入，避開当前事务回滚
+            try (Connection conn = dataSource.getConnection()) {
+                conn.createStatement().executeUpdate(
+                    "INSERT INTO group_join_request (group_id, user_id, status) VALUES (" + groupId + "," + userId + ",0) ON DUPLICATE KEY UPDATE status=0, created_at=NOW()");
+            } catch (Exception ignored) {}
+            throw new BusinessException("已发送入群申请，等待群主审批");
+        }
         userService.requireUser(userId);
-
         saveMember(groupId, userId, Constants.GROUP_ROLE_MEMBER);
+    }
+
+    @Transactional
+    public void setJoinMode(Long userId, Long groupId, Integer mode) {
+        ChatGroup group = getGroup(groupId);
+        if (!group.getOwnerId().equals(userId)) throw new BusinessException("只有群主可以设置");
+        group.setJoinMode(mode);
+        chatGroupRepository.save(group);
     }
 
     @Transactional
@@ -439,6 +487,61 @@ public class GroupService {
         group.setName(newName.trim());
         chatGroupRepository.save(group);
         return getGroupDetail(groupId, userId);
+    }
+
+    public Map<Long, Long> getPendingDetail(Long userId) {
+        try {
+            List<Map<String, Object>> rows = jdbc.queryForList(
+                "SELECT r.group_id, COUNT(*) as cnt FROM group_join_request r JOIN `group` g ON r.group_id=g.id WHERE g.owner_id=? AND r.status=0 GROUP BY r.group_id", userId);
+            Map<Long, Long> result = new HashMap<>();
+            for (var row : rows) result.put(((Number) row.get("group_id")).longValue(), ((Number) row.get("cnt")).longValue());
+            return result;
+        } catch (Exception e) { return Map.of(); }
+    }
+
+    private void pushSystemMessage(Long groupId, String content) {
+        if (pushService == null) return;
+        // 查询最后插入的消息ID
+        Long msgId = jdbc.queryForObject("SELECT MAX(id) FROM message WHERE group_id=? AND msg_type=?", Long.class, groupId, Constants.MSG_SYSTEM);
+        if (msgId == null) return;
+        MessageVO vo = MessageVO.builder().id(msgId).chatType(Constants.CHAT_GROUP).groupId(groupId).content(content).msgType(Constants.MSG_SYSTEM).isRecalled(0).createdAt(java.time.LocalDateTime.now()).build();
+        pushService.pushNewMessage(vo);
+    }
+
+    public int getPendingRequestCount(Long userId) {
+        return jdbc.queryForObject(
+            "SELECT COUNT(*) FROM group_join_request r JOIN `group` g ON r.group_id=g.id WHERE g.owner_id=? AND r.status=0",
+            Integer.class, userId);
+    }
+
+    public List<Map<String, Object>> getPendingRequests(Long userId, Long groupId) {
+        ChatGroup g = getGroup(groupId);
+        if (!g.getOwnerId().equals(userId)) throw new BusinessException("仅群主可查看");
+        return jdbc.queryForList(
+            "SELECT r.id, r.user_id, u.nickname, u.username, u.avatar, r.created_at FROM group_join_request r JOIN user u ON r.user_id=u.id WHERE r.group_id=? AND r.status=0", groupId);
+    }
+
+    @Transactional
+    public void approveRequest(Long userId, Long groupId, Long requestId, boolean approve) {
+        ChatGroup g = getGroup(groupId);
+        if (!g.getOwnerId().equals(userId)) throw new BusinessException("仅群主可操作");
+        var rows = jdbc.queryForList("SELECT * FROM group_join_request WHERE id=? AND status=0", requestId);
+        if (rows.isEmpty()) throw new BusinessException("申请不存在");
+        Long applicantId = (Long) rows.get(0).get("user_id");
+        jdbc.update("UPDATE group_join_request SET status=? WHERE id=?", approve ? 1 : 2, requestId);
+        if (approve && !groupMemberRepository.existsByGroupIdAndUserId(groupId, applicantId)) {
+            saveMember(groupId, applicantId, Constants.GROUP_ROLE_MEMBER);
+            User u = userRepository.findById(applicantId).orElse(null);
+            String name = u != null ? (u.getNickname() != null ? u.getNickname() : u.getUsername()) : "新成员";
+            String sysMsg = name + "加入了群聊";
+            jdbc.update("INSERT INTO message (chat_type, from_user_id, group_id, content, msg_type, created_at) VALUES (?,?,?,?,?,NOW())",
+                    Constants.CHAT_GROUP, applicantId, groupId, sysMsg, Constants.MSG_SYSTEM);
+            for (var m : groupMemberRepository.findByGroupId(groupId)) {
+                jdbc.update("INSERT INTO conversation (user_id, target_type, target_id, last_message_preview, last_message_at) VALUES (?,2,?,?,NOW()) ON DUPLICATE KEY UPDATE last_message_preview=?, last_message_at=NOW()",
+                        m.getUserId(), groupId, sysMsg, sysMsg);
+            }
+            pushSystemMessage(groupId, sysMsg);
+        }
     }
 
     @Transactional

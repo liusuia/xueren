@@ -16,6 +16,10 @@
         <span class="ctl-act-icon" style="background:#f7931e"><svg viewBox="0 0 24 24" width="16" height="16" fill="#fff"><path d="M15 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm-9-2V7H4v3H1v2h3v3h2v-3h3v-2H6zm9 4c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg></span>
         <span>添加好友</span>
       </button>
+      <button class="ctl-act-btn" @click="showJoinGroup = true">
+        <span class="ctl-act-icon" style="background:#9B59B6"><svg viewBox="0 0 24 24" width="16" height="16" fill="#fff"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg></span>
+        <span>加入群聊</span>
+      </button>
     </div>
 
     <!-- 群聊分组 -->
@@ -24,6 +28,7 @@
       <div v-for="g in groupStore.list" :key="g.id" class="cti-root" @click="$emit('select', toGroupConv(g))" @contextmenu.prevent="onGroupCtx($event, g)">
         <Avatar :src="g.avatar" :name="g.name" :size="40" />
         <span class="cti-name">{{ g.name }}</span>
+        <span v-if="groupStore.getPendingCount(g.id)" class="cti-req-badge">{{ groupStore.getPendingCount(g.id) }}</span>
       </div>
     </div>
 
@@ -41,6 +46,25 @@
         </div>
       </div>
     </div>
+
+    <!-- 加入群聊弹窗 -->
+    <Teleport to="body">
+      <div v-if="showJoinGroup" class="cd-overlay" @click="showJoinGroup = false">
+        <div class="cd-dialog" @click.stop>
+          <div class="cd-hd">加入群聊</div>
+          <div class="cd-search"><input v-model="joinGroupKw" class="gip-inp" placeholder="搜索群名称" @input="onSearchGroup" /></div>
+          <div class="cd-list">
+            <div v-for="g in joinGroupResults" :key="g.id" class="cd-item" @click="doJoinGroup(g)">
+              <Avatar :src="g.avatar" :name="g.name" :size="36" />
+              <span>{{ g.name }}</span>
+              <button class="ctl-add-btn">加入</button>
+            </div>
+            <div v-if="!joinGroupKw" class="cd-empty">输入群名称搜索</div>
+            <div v-else-if="!joinGroupResults.length" class="cd-empty">未找到群聊</div>
+          </div>
+        </div>
+      </div>
+    </Teleport>
 
     <EmptyState v-if="!groupStore.list.length && !contactStore.friendSections.length" title="暂无好友和群聊" desc="去添加好友或创建群聊吧" />
 
@@ -65,7 +89,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import Avatar from '../common/Avatar.vue'
 import Badge from '../common/Badge.vue'
 import EmptyState from '../common/EmptyState.vue'
@@ -75,12 +99,36 @@ import { useGroupStore } from '../../stores/groups'
 import { useConversationStore } from '../../stores/conversations'
 import { useChatStore } from '../../stores/chat'
 import { useConfirm } from '../../composables/useConfirm'
+import { groupApi } from '../../api/endpoints'
+import { useNotification } from '../../composables/useNotification'
 
 const contactStore = useContactStore()
 const groupStore = useGroupStore()
 const convStore = useConversationStore()
 const chatStore = useChatStore()
 const cfm = useConfirm()
+const { success, error } = useNotification()
+const showJoinGroup = ref(false)
+const joinGroupKw = ref('')
+const joinGroupResults = ref([])
+let joinTimer = null
+watch(showJoinGroup, (v) => {
+  if (v) { joinGroupKw.value = ''; joinGroupResults.value = [] }
+  else { joinGroupKw.value = ''; joinGroupResults.value = [] }
+})
+function onSearchGroup() { clearTimeout(joinTimer); joinTimer = setTimeout(async () => {
+  const kw = joinGroupKw.value.trim()
+  if (!kw) { joinGroupResults.value = []; return }
+  try {
+    const results = await groupApi.search(kw) || []
+    const myIds = new Set(groupStore.list.map(g => g.id))
+    joinGroupResults.value = results.filter(g => !myIds.has(g.id))
+  } catch { joinGroupResults.value = [] }
+}, 300) }
+async function doJoinGroup(g) {
+  try { await groupApi.join(g.id); showJoinGroup.value = false; success('已加入 ' + g.name); groupStore.fetchGroups() }
+  catch (e) { error(e.message || '加入失败') }
+}
 const emit = defineEmits(['select', 'addFriend', 'friendRequests', 'createGroup', 'showFriendInfo', 'showGroupInfo'])
 
 const ctxVisible = ref(false)
@@ -185,7 +233,8 @@ function toGroupConv(g) {
 .ctl-letter-hd { font-size: 11px; color: var(--text-muted, #999); padding: 6px 16px 2px; font-weight: 600; }
 .cti-root { display: flex; align-items: center; gap: 12px; padding: 10px 16px; cursor: pointer; transition: background 0.12s; }
 .cti-root:hover { background: var(--bg-hover, rgba(255,255,255,0.04)); }
-.cti-name { font-size: 14px; color: var(--text-primary, #e8e8ea); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cti-name { font-size: 14px; color: var(--text-primary, #e8e8ea); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+.cti-req-badge { background: #07C160; color: #fff; font-size: 10px; min-width: 16px; height: 16px; line-height: 16px; text-align: center; border-radius: 8px; padding: 0 5px; margin-left: 6px; flex-shrink: 0; }
 .cti-fh-avatar { width: 40px; height: 40px; border-radius: 8px; background: rgba(247,147,30,0.15); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 .cd-overlay { position: fixed; inset: 0; z-index: 300; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; }
 .cd-dialog { width: 320px; max-height: 400px; border-radius: 12px; background: var(--bg-dialog, #252529); overflow: hidden; display: flex; flex-direction: column; }
@@ -194,4 +243,6 @@ function toGroupConv(g) {
 .cd-item { display: flex; align-items: center; gap: 10px; padding: 10px 18px; cursor: pointer; color: var(--text-primary, #e8e8ea); font-size: 13px; }
 .cd-item:hover { background: var(--bg-hover, rgba(255,255,255,0.06)); }
 .cd-empty { text-align: center; padding: 24px; color: var(--text-muted, #999); font-size: 13px; }
+.cd-search { padding: 8px 14px; }
+.ctl-add-btn { padding: 4px 12px; border: none; border-radius: 4px; background: var(--accent, #f7931e); color: #fff; font-size: 12px; cursor: pointer; margin-left: auto; }
 </style>

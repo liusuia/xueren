@@ -98,4 +98,5 @@ const displayName = computed(() => {
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1;
 }
 .ci-draft { color: #e74c3c; font-size: 11px; margin-right: 2px; }
+.ci-group-badge { background: #07C160; color: #fff; font-size: 10px; min-width: 16px; height: 16px; line-height: 16px; text-align: center; border-radius: 8px; padding: 0 4px; margin-left: 4px; }
 </style>

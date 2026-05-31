@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { groupApi } from '../api/endpoints'
+import http from '../api/http'
 import { useAuthStore } from './auth'
 
 export const useGroupStore = defineStore('groups', () => {
@@ -10,6 +11,8 @@ export const useGroupStore = defineStore('groups', () => {
   const currentGroupFiles = ref([])
   const loading = ref(false)
 
+  const pendingCounts = ref({})
+
   async function fetchGroups() {
     loading.value = true
     try {
@@ -17,6 +20,14 @@ export const useGroupStore = defineStore('groups', () => {
     } finally {
       loading.value = false
     }
+  }
+
+  async function fetchPendingCounts() {
+    try { pendingCounts.value = await http.get('/groups/pending-detail') || {} } catch {}
+  }
+
+  function getPendingCount(groupId) {
+    return pendingCounts.value[String(groupId)] || 0
   }
 
   async function fetchGroupDetail(groupId) {
@@ -156,11 +167,11 @@ export const useGroupStore = defineStore('groups', () => {
   }
 
   return {
-    list, currentGroup, currentGroupMembers, currentGroupFiles, loading,
+    list, currentGroup, currentGroupMembers, currentGroupFiles, loading, pendingCounts,
     fetchGroups, fetchGroupDetail, createGroup, addMembers,
     removeMember, quitGroup, dismissGroup, transferOwner,
     setAdmin, muteMember, toggleMuteNotification, updateNotice, updateGroupRemark, updateGroupNickname,
     fetchGroupFiles, uploadGroupFile, searchGroups, joinGroup,
-    updateGroupAvatar, updateName, isOwner, isAdmin, currentGroupRole
+    updateGroupAvatar, updateName, isOwner, isAdmin, currentGroupRole, getPendingCount, fetchPendingCounts
   }
 })

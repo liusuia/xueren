@@ -34,7 +34,7 @@ http.interceptors.response.use(
       // 401/403 自动跳登录
       if (status === 401 || status === 403) {
         const auth = useAuthStore()
-        if (auth.token) {
+        if (auth.token && window.location.pathname !== '/login') {
           auth.logout()
         }
       }

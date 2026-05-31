@@ -164,6 +164,7 @@ onMounted(async () => {
   contactStore.fetchFriends()
   contactStore.fetchRequests()
   groupStore.fetchGroups()
+  groupStore.fetchPendingCounts()
   // 新注册用户自动打开文件助手
   const isNewUser = sessionStorage.getItem('xr_new_user')
   if (isNewUser) {

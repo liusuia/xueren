@@ -20,4 +20,5 @@ public class GroupVO {
     private String remark;
     private String notice;
     private LocalDateTime noticeUpdatedAt;
+    private Integer joinMode;
 }

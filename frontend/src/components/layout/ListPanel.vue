@@ -114,8 +114,11 @@ function onSearch() {
     results.contacts = contactStore.friends
       .filter(f => (f.remark||f.nickname||f.username||'').toLowerCase().includes(ql))
       .map(f => ({ id:f.userId, username:f.username, nickname:f.nickname, avatar:f.avatar }))
-    // 群组
-    try { results.groups = (await groupStore.searchGroups(q)) || [] } catch { results.groups = [] }
+    // 群组（仅已加入的）
+    try {
+      const myIds = new Set(groupStore.list.map(g => g.id))
+      results.groups = ((await groupStore.searchGroups(q)) || []).filter(g => myIds.has(g.id))
+    } catch { results.groups = [] }
     // 聊天记录：遍历会话拉消息过滤
     let msgMatches = []
     try {

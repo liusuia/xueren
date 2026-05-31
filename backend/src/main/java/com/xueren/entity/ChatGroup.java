@@ -34,6 +34,9 @@ public class ChatGroup {
     @Column(name = "notice_updated_at")
     private LocalDateTime noticeUpdatedAt;
 
+    @Column(name = "join_mode")
+    private Integer joinMode;
+
     @Column(name = "updated_at", insertable = false, updatable = false)
     private LocalDateTime updatedAt;
 }

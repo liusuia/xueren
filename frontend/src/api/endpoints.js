@@ -58,7 +58,8 @@ export const groupApi = {
   uploadFile: (groupId, fileId) => http.post(`/groups/${groupId}/files`, { fileId }),
   listFiles: (groupId) => http.get(`/groups/${groupId}/files`),
   updateAvatar: (groupId, avatar) => http.put(`/groups/${groupId}/avatar`, { avatar }),
-  updateName: (groupId, name) => http.put(`/groups/${groupId}/name`, { name })
+  updateName: (groupId, name) => http.put(`/groups/${groupId}/name`, { name }),
+  setJoinMode: (groupId, mode) => http.put(`/groups/${groupId}/join-mode`, { mode })
 }
 
 // ==================== Message ====================

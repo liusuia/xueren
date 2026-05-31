@@ -32,6 +32,21 @@ public class GroupController {
         return ApiResponse.ok(groupService.listMyGroups(AuthHolder.currentUserId()));
     }
 
+    @GetMapping("/search")
+    public ApiResponse<List<GroupVO>> search(@RequestParam String keyword) {
+        return ApiResponse.ok(groupService.searchGroups(keyword));
+    }
+
+    @GetMapping("/pending-count")
+    public ApiResponse<Integer> pendingRequestCount() {
+        return ApiResponse.ok(groupService.getPendingRequestCount(AuthHolder.currentUserId()));
+    }
+
+    @GetMapping("/pending-detail")
+    public ApiResponse<Map<Long, Long>> pendingDetail() {
+        return ApiResponse.ok(groupService.getPendingDetail(AuthHolder.currentUserId()));
+    }
+
     @GetMapping("/{groupId}")
     public ApiResponse<GroupVO> detail(@PathVariable Long groupId) {
         groupService.ensureMember(groupId, AuthHolder.currentUserId());
@@ -92,11 +107,6 @@ public class GroupController {
         return ApiResponse.ok("群公告已更新", null);
     }
 
-    @GetMapping("/search")
-    public ApiResponse<List<GroupVO>> search(@RequestParam String keyword) {
-        return ApiResponse.ok(groupService.searchGroups(keyword));
-    }
-
     @PostMapping("/{groupId}/join")
     public ApiResponse<Void> joinGroup(@PathVariable Long groupId) {
         groupService.joinGroup(AuthHolder.currentUserId(), groupId);
@@ -145,5 +155,22 @@ public class GroupController {
     @PutMapping("/{groupId}/name")
     public ApiResponse<GroupVO> updateName(@PathVariable Long groupId, @RequestBody Map<String, String> body) {
         return ApiResponse.ok(groupService.updateName(AuthHolder.currentUserId(), groupId, body.get("name")));
+    }
+
+    @PutMapping("/{groupId}/join-mode")
+    public ApiResponse<Void> setJoinMode(@PathVariable Long groupId, @RequestBody Map<String, Integer> body) {
+        groupService.setJoinMode(AuthHolder.currentUserId(), groupId, body.get("mode"));
+        return ApiResponse.ok("已更新", null);
+    }
+
+    @GetMapping("/{groupId}/requests")
+    public ApiResponse<List<Map<String, Object>>> pendingRequests(@PathVariable Long groupId) {
+        return ApiResponse.ok(groupService.getPendingRequests(AuthHolder.currentUserId(), groupId));
+    }
+
+    @PutMapping("/{groupId}/requests/{requestId}")
+    public ApiResponse<Void> approveRequest(@PathVariable Long groupId, @PathVariable Long requestId, @RequestBody Map<String, Boolean> body) {
+        groupService.approveRequest(AuthHolder.currentUserId(), groupId, requestId, body.getOrDefault("approve", true));
+        return ApiResponse.ok("已处理", null);
     }
 }

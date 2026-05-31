@@ -43,8 +43,10 @@ import { useAuthStore } from '../../stores/auth'
 import { useUiStore } from '../../stores/ui'
 import { useConversationStore } from '../../stores/conversations'
 import { useContactStore } from '../../stores/contacts'
+import { useGroupStore } from '../../stores/groups'
 
 const auth = useAuthStore()
+const groupStore = useGroupStore()
 const ui = useUiStore()
 const convStore = useConversationStore()
 const contactStore = useContactStore()
@@ -52,7 +54,13 @@ const contactStore = useContactStore()
 const totalUnread = computed(() =>
   convStore.list.reduce((sum, c) => sum + (c.unreadCount || 0), 0)
 )
-const pendingCount = computed(() => contactStore.requests?.length || 0)
+const pendingCount = computed(() => {
+  let count = contactStore.requests?.length || 0
+  // 加上群审批数
+  const pcs = groupStore.pendingCounts || {}
+  for (const k in pcs) count += pcs[k] || 0
+  return count
+})
 
 defineEmits(['profile'])
 </script>

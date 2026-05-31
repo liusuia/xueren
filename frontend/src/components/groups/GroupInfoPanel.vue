@@ -26,6 +26,32 @@
               <div class="gip-card-body">{{ cleanNotice(groupStore.currentGroup.notice) || '暂无公告' }}</div>
             </div>
 
+            <!-- 入群方式（仅群主可见） -->
+            <div v-if="groupStore.isOwner(groupStore.currentGroup.id)" class="gip-card">
+              <div class="gip-card-hd"><span>入群方式</span></div>
+              <select v-model.number="joinMode" class="gip-select" @change="onJoinModeChange">
+                <option :value="0">自由加入</option>
+                <option :value="1">需群主审批</option>
+                <option :value="2">禁止加入</option>
+              </select>
+            </div>
+
+            <!-- 入群申请（仅群主可见） -->
+            <div v-if="groupStore.isOwner(groupStore.currentGroup.id) && pendingRequests.length" class="gip-card">
+              <div class="gip-card-hd"><span>入群申请 ({{ pendingRequests.length }})</span></div>
+              <div v-for="r in pendingRequests" :key="r.id" class="gip-req">
+                <Avatar :src="r.avatar" :name="r.nickname || r.username" :size="32" />
+                <span class="gip-req-name">{{ r.nickname || r.username }}</span>
+                <button class="gip-req-accept" @click="onApproveRequest(r.id, true)">通过</button>
+                <button class="gip-req-reject" @click="onApproveRequest(r.id, false)">拒绝</button>
+              </div>
+            </div>
+
+            <!-- 刷新审批按钮 -->
+            <div v-if="groupStore.isOwner(groupStore.currentGroup.id)" class="gip-card" style="text-align:center">
+              <button class="gip-link" @click="loadRequests">刷新入群申请</button>
+            </div>
+
             <!-- 群备注（个人可见） -->
             <div class="gip-card">
               <div class="gip-card-hd"><span>群备注</span></div>
@@ -96,7 +122,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted, nextTick } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import Avatar from '../common/Avatar.vue'
 import ContextMenu from '../common/ContextMenu.vue'
 import { useGroupStore } from '../../stores/groups'
@@ -105,6 +131,8 @@ import { useAuthStore } from '../../stores/auth'
 import { useConversationStore } from '../../stores/conversations'
 import { useNotification } from '../../composables/useNotification'
 import { useConfirm } from '../../composables/useConfirm'
+import { groupApi } from '../../api/endpoints'
+import http from '../../api/http'
 
 const groupStore = useGroupStore()
 const contactStore = useContactStore()
@@ -120,6 +148,31 @@ const ctxItems = ref([])
 let ctxMember = null
 const showInvite = ref(false)
 const inviteList = ref([])
+const joinMode = ref(0)
+watch(() => groupStore.currentGroup?.joinMode, (v) => { joinMode.value = v ?? 0 }, { immediate: true })
+async function onJoinModeChange() {
+  try { await groupApi.setJoinMode(groupStore.currentGroup.id, joinMode.value) } catch {}
+}
+const pendingRequests = ref([])
+async function loadRequests() {
+  if (!groupStore.isOwner(groupStore.currentGroup?.id)) return
+  try { pendingRequests.value = await http.get('/groups/' + groupStore.currentGroup.id + '/requests') } catch {}
+}
+async function onApproveRequest(reqId, approve) {
+  try {
+    await http.put('/groups/' + groupStore.currentGroup.id + '/requests/' + reqId, { approve })
+    loadRequests()
+    // 立即更新本地计数
+    const gid = groupStore.currentGroup.id
+    const cur = groupStore.pendingCounts[gid] || 0
+    if (cur > 0) groupStore.pendingCounts = { ...groupStore.pendingCounts, [gid]: cur - 1 }
+  } catch {}
+}
+let reqTimer = null
+watch(() => groupStore.currentGroup?.id, (id) => {
+  if (id) { clearTimeout(reqTimer); reqTimer = setTimeout(loadRequests, 300) }
+}, { immediate: true })
+onUnmounted(() => clearTimeout(reqTimer))
 
 // 清洗旧版 JSON 脏数据：{"remark":"xxx"} → xxx
 function clean(v) {
@@ -278,6 +331,12 @@ async function onDismiss() { if (await cfm.danger('确定解散群聊？此操�
 .gip-card { background: var(--bg-input, #22252d); border-radius: 8px; padding: 12px 14px; margin-bottom: 12px; }
 .gip-card-hd { display: flex; justify-content: space-between; align-items: center; font-size: 12px; font-weight: 600; color: var(--text-muted, #999); margin-bottom: 8px; }
 .gip-card-body { font-size: 13px; color: var(--text-secondary, #bbb); line-height: 1.5; }
+.gip-select { width: 100%; padding: 6px 10px; border: 1px solid var(--border, #3a3c44); border-radius: 4px; background: var(--bg-input, #2e3038); color: var(--text-primary, #e8e8ea); font-size: 13px; outline: none; }
+.gip-req { display: flex; align-items: center; gap: 8px; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.04); }
+.gip-req:last-child { border-bottom: none; }
+.gip-req-name { flex: 1; font-size: 13px; color: var(--text-primary, #e8e8ea); }
+.gip-req-accept { padding: 3px 10px; border: none; border-radius: 3px; background: #07C160; color: #fff; font-size: 11px; cursor: pointer; }
+.gip-req-reject { padding: 3px 10px; border: none; border-radius: 3px; background: #e74c3c; color: #fff; font-size: 11px; cursor: pointer; }
 .gip-link { background: none; border: none; color: var(--accent, #f7931e); font-size: 12px; cursor: pointer; }
 
 .gip-inp { width: 100%; border: none; border-radius: 4px; padding: 6px 10px; font-size: 13px; color: var(--text-primary, #e8e8ea); background: transparent; outline: none; }
