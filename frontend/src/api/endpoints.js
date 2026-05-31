@@ -56,7 +56,8 @@ export const groupApi = {
   muteNotification: (groupId, mute) => http.put(`/groups/${groupId}/mute-notification`, { mute }),
   uploadFile: (groupId, fileId) => http.post(`/groups/${groupId}/files`, { fileId }),
   listFiles: (groupId) => http.get(`/groups/${groupId}/files`),
-  updateAvatar: (groupId, avatar) => http.put(`/groups/${groupId}/avatar`, { avatar })
+  updateAvatar: (groupId, avatar) => http.put(`/groups/${groupId}/avatar`, { avatar }),
+  updateName: (groupId, name) => http.put(`/groups/${groupId}/name`, { name })
 }
 
 // ==================== Message ====================

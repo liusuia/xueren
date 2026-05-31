@@ -129,6 +129,16 @@ export const useGroupStore = defineStore('groups', () => {
     if (currentGroup.value) currentGroup.value.avatar = avatarUrl
   }
 
+  async function updateName(groupId, name) {
+    const g = await groupApi.updateName(groupId, name)
+    if (currentGroup.value?.id === groupId) {
+      currentGroup.value.name = g.name
+    }
+    const idx = list.value.findIndex(x => x.id === groupId)
+    if (idx !== -1) list.value[idx] = { ...list.value[idx], name: g.name }
+    return g
+  }
+
   const currentUserId = () => useAuthStore().user?.id
   const isOwner = (groupId) => {
     const g = list.value.find(x => x.id === groupId) || currentGroup.value
@@ -151,6 +161,6 @@ export const useGroupStore = defineStore('groups', () => {
     removeMember, quitGroup, dismissGroup, transferOwner,
     setAdmin, muteMember, toggleMuteNotification, updateNotice, updateGroupRemark, updateGroupNickname,
     fetchGroupFiles, uploadGroupFile, searchGroups, joinGroup,
-    updateGroupAvatar, isOwner, isAdmin, currentGroupRole
+    updateGroupAvatar, updateName, isOwner, isAdmin, currentGroupRole
   }
 })

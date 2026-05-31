@@ -141,4 +141,9 @@ public class GroupController {
         groupService.ensureMember(groupId, AuthHolder.currentUserId());
         return ApiResponse.ok(groupService.updateAvatar(AuthHolder.currentUserId(), groupId, body.get("avatar")));
     }
+
+    @PutMapping("/{groupId}/name")
+    public ApiResponse<GroupVO> updateName(@PathVariable Long groupId, @RequestBody Map<String, String> body) {
+        return ApiResponse.ok(groupService.updateName(AuthHolder.currentUserId(), groupId, body.get("name")));
+    }
 }

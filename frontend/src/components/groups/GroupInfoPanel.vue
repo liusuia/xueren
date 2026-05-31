@@ -13,7 +13,8 @@
           <div class="gip-body" v-if="groupStore.currentGroup">
             <div class="gip-top">
               <Avatar :src="groupStore.currentGroup.avatar" :name="groupStore.currentGroup.name" :size="56" />
-              <div class="gip-name">{{ groupStore.currentGroup.name }}</div>
+              <div v-if="!editingName" class="gip-name" :class="{ editable: canEditName }" @click="startEditName">{{ groupStore.currentGroup.name }}</div>
+              <input v-else ref="nameInputRef" class="gip-inp gip-name-input" :value="editNameVal" @blur="saveName" @keydown.enter="$event.target.blur()" @keydown.escape="editingName=false" />
             </div>
 
             <!-- 群公告 -->
@@ -95,7 +96,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, computed, watch, onMounted, nextTick } from 'vue'
 import Avatar from '../common/Avatar.vue'
 import ContextMenu from '../common/ContextMenu.vue'
 import { useGroupStore } from '../../stores/groups'
@@ -142,6 +143,29 @@ const myRemark = computed(() => {
   return clean(v)
 })
 const myMuted = computed(() => !!(me.value?.isNotificationMuted))
+
+// 群名称编辑
+const editingName = ref(false)
+const editNameVal = ref('')
+const nameInputRef = ref(null)
+const canEditName = computed(() => {
+  return groupStore.isOwner(groupStore.currentGroup?.id) || groupStore.isAdmin(groupStore.currentGroup?.id)
+})
+function startEditName() {
+  if (!canEditName.value) return
+  editNameVal.value = groupStore.currentGroup.name
+  editingName.value = true
+  nextTick(() => nameInputRef.value?.focus())
+}
+async function saveName(e) {
+  const val = e.target.value.trim()
+  editingName.value = false
+  if (val && val !== groupStore.currentGroup.name) {
+    try {
+      await groupStore.updateName(groupStore.currentGroup.id, val)
+    } catch (e) { error(e.message || '修改失败') }
+  }
+}
 
 async function editNotice() {
   const notice = await cfm.prompt('编辑群公告（仅群主）', { inputPlaceholder: '输入群公告', inputDefault: cleanNotice(groupStore.currentGroup?.notice) || '' })
@@ -247,6 +271,9 @@ async function onDismiss() { if (await cfm.danger('确定解散群聊？此操�
 
 .gip-top { display: flex; flex-direction: column; align-items: center; margin-bottom: 16px; }
 .gip-name { font-size: 17px; font-weight: 600; color: var(--text-primary, #e8e8ea); margin-top: 8px; }
+.gip-name.editable { cursor: pointer; border-bottom: 1px dashed transparent; }
+.gip-name.editable:hover { border-bottom-color: var(--accent, #f7931e); }
+.gip-name-input { font-size: 17px; font-weight: 600; text-align: center; margin-top: 8px; }
 
 .gip-card { background: var(--bg-input, #22252d); border-radius: 8px; padding: 12px 14px; margin-bottom: 12px; }
 .gip-card-hd { display: flex; justify-content: space-between; align-items: center; font-size: 12px; font-weight: 600; color: var(--text-muted, #999); margin-bottom: 8px; }

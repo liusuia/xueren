@@ -405,6 +405,23 @@ public class GroupService {
     }
 
     @Transactional
+    public GroupVO updateName(Long userId, Long groupId, String newName) {
+        if (newName == null || newName.isBlank()) {
+            throw new BusinessException("群名称不能为空");
+        }
+        ChatGroup group = getGroup(groupId);
+        GroupMember member = groupMemberRepository.findByGroupIdAndUserId(groupId, userId)
+                .orElseThrow(() -> new BusinessException("不是群成员"));
+        // 群主或管理员才能改群名
+        if (member.getRole() > Constants.GROUP_ROLE_ADMIN) {
+            throw new BusinessException("只有群主和管理员可以修改群名称");
+        }
+        group.setName(newName.trim());
+        chatGroupRepository.save(group);
+        return getGroupDetail(groupId, userId);
+    }
+
+    @Transactional
     public GroupVO updateAvatar(Long userId, Long groupId, String avatarUrl) {
         ChatGroup group = getGroup(groupId);
         if (!group.getOwnerId().equals(userId)) {
