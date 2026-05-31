@@ -18,8 +18,9 @@ import com.xueren.repository.GroupFileRepository;
 import com.xueren.repository.GroupMemberRepository;
 import com.xueren.repository.StoredFileRepository;
 import com.xueren.repository.UserRepository;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Lazy;
+import com.xueren.event.GroupEvent;
+import com.xueren.event.JoinRequestEvent;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -45,8 +46,7 @@ public class GroupService {
     private final UserRepository userRepository;
     private final JdbcTemplate jdbc;
     private final DataSource dataSource;
-    @Lazy @Autowired(required = false)
-    private MessagePushService pushService;
+    private final ApplicationEventPublisher eventPublisher;
 
     public GroupService(ChatGroupRepository chatGroupRepository,
                         GroupMemberRepository groupMemberRepository,
@@ -55,7 +55,8 @@ public class GroupService {
                         UserService userService,
                         UserRepository userRepository,
                         JdbcTemplate jdbc,
-                        DataSource dataSource) {
+                        DataSource dataSource,
+                        ApplicationEventPublisher eventPublisher) {
         this.chatGroupRepository = chatGroupRepository;
         this.groupMemberRepository = groupMemberRepository;
         this.groupFileRepository = groupFileRepository;
@@ -64,6 +65,7 @@ public class GroupService {
         this.userRepository = userRepository;
         this.jdbc = jdbc;
         this.dataSource = dataSource;
+        this.eventPublisher = eventPublisher;
     }
 
     @Transactional
@@ -247,21 +249,21 @@ public class GroupService {
                 .orElseThrow(() -> new BusinessException("用户不在群中"));
 
         groupMemberRepository.delete(member);
-        // 发系统消息：您已被移除群聊
+        // 发系统消息：XXX已被移出群聊
         User kicked = userRepository.findById(userId).orElse(null);
         String name = kicked != null ? (kicked.getNickname() != null ? kicked.getNickname() : kicked.getUsername()) : "用户";
         String sysMsg = name + "已被移出群聊";
         jdbc.update("INSERT INTO message (chat_type, from_user_id, group_id, content, msg_type, created_at) VALUES (?,?,?,?,?,NOW())",
                 Constants.CHAT_GROUP, userId, groupId, sysMsg, Constants.MSG_SYSTEM);
-        // 更新所有成员会话预览
+        // 保留被踢用户的会话，只更新预览
+        jdbc.update("INSERT INTO conversation (user_id, target_type, target_id, last_message_preview, last_message_at) VALUES (?,2,?,?,NOW()) ON DUPLICATE KEY UPDATE last_message_preview=?, last_message_at=NOW()",
+                userId, groupId, sysMsg, sysMsg);
+        // 更新群内成员会话
         for (var m : groupMemberRepository.findByGroupId(groupId)) {
             jdbc.update("INSERT INTO conversation (user_id, target_type, target_id, last_message_preview, last_message_at) VALUES (?,2,?,?,NOW()) ON DUPLICATE KEY UPDATE last_message_preview=?, last_message_at=NOW()",
                     m.getUserId(), groupId, sysMsg, sysMsg);
         }
-        // 更新被踢用户的会话预览
-        jdbc.update("INSERT INTO conversation (user_id, target_type, target_id, last_message_preview, last_message_at) VALUES (?,2,?,?,NOW()) ON DUPLICATE KEY UPDATE last_message_preview=?, last_message_at=NOW()",
-                userId, groupId, sysMsg, sysMsg);
-        try { pushSystemMessage(groupId, sysMsg); } catch (Exception ignored) {}
+        eventPublisher.publishEvent(new GroupEvent(groupId, sysMsg));
     }
 
     @Transactional
@@ -458,6 +460,7 @@ public class GroupService {
                 conn.createStatement().executeUpdate(
                     "INSERT INTO group_join_request (group_id, user_id, status) VALUES (" + groupId + "," + userId + ",0) ON DUPLICATE KEY UPDATE status=0, created_at=NOW()");
             } catch (Exception ignored) {}
+            eventPublisher.publishEvent(new JoinRequestEvent(groupId, group.getOwnerId()));
             throw new BusinessException("已发送入群申请，等待群主审批");
         }
         userService.requireUser(userId);
@@ -499,14 +502,6 @@ public class GroupService {
         } catch (Exception e) { return Map.of(); }
     }
 
-    private void pushSystemMessage(Long groupId, String content) {
-        if (pushService == null) return;
-        // 查询最后插入的消息ID
-        Long msgId = jdbc.queryForObject("SELECT MAX(id) FROM message WHERE group_id=? AND msg_type=?", Long.class, groupId, Constants.MSG_SYSTEM);
-        if (msgId == null) return;
-        MessageVO vo = MessageVO.builder().id(msgId).chatType(Constants.CHAT_GROUP).groupId(groupId).content(content).msgType(Constants.MSG_SYSTEM).isRecalled(0).createdAt(java.time.LocalDateTime.now()).build();
-        pushService.pushNewMessage(vo);
-    }
 
     public int getPendingRequestCount(Long userId) {
         return jdbc.queryForObject(
@@ -540,7 +535,7 @@ public class GroupService {
                 jdbc.update("INSERT INTO conversation (user_id, target_type, target_id, last_message_preview, last_message_at) VALUES (?,2,?,?,NOW()) ON DUPLICATE KEY UPDATE last_message_preview=?, last_message_at=NOW()",
                         m.getUserId(), groupId, sysMsg, sysMsg);
             }
-            pushSystemMessage(groupId, sysMsg);
+            eventPublisher.publishEvent(new GroupEvent(groupId, sysMsg));
         }
     }
 

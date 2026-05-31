@@ -124,6 +124,10 @@ onMessageRecalled((msg) => {
 // 正在输入指示
 let typingTimer = null
 addWsListener((packet) => {
+  if (packet.type === 'JOIN_REQUEST') {
+    groupStore.fetchPendingCounts()
+    return
+  }
   if (packet.type === 'MESSAGE_EDITED') {
     const m = packet.data
     const existing = chat.messages.find(x => x.id === m.id)

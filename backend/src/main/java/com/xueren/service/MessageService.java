@@ -126,7 +126,9 @@ public class MessageService {
     }
 
     public List<MessageVO> listGroupChat(Long userId, Long groupId, int limit, Long beforeId) {
-        groupService.ensureMember(groupId, userId);
+        // 被踢用户仍可查看历史，不抛异常
+        boolean isMember = true;
+        try { groupService.ensureMember(groupId, userId); } catch (BusinessException e) { isMember = false; }
         LocalDateTime clearedAt = conversationRepository
                 .findByUserIdAndTargetTypeAndTargetId(userId, Constants.TARGET_GROUP, groupId)
                 .map(c -> c.getClearedAt())
