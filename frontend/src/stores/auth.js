@@ -30,6 +30,7 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   function logout() {
+    // 先同步清空本地状态（确保路由守卫立即可用）
     token.value = ''
     refreshToken.value = ''
     user.value = null
@@ -37,6 +38,8 @@ export const useAuthStore = defineStore('auth', () => {
     localStorage.removeItem('refreshToken')
     localStorage.removeItem('user')
     disconnectWs()
+    // 异步通知后端（不影响前端跳转）
+    http.post('/auth/logout').catch(() => {})
   }
 
   function restoreWs() {

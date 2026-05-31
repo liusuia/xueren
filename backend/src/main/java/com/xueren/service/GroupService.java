@@ -6,20 +6,24 @@ import com.xueren.dto.CreateGroupRequest;
 import com.xueren.dto.GroupFileVO;
 import com.xueren.dto.GroupMemberVO;
 import com.xueren.dto.GroupVO;
+import com.xueren.dto.UserVO;
 import com.xueren.entity.ChatGroup;
 import com.xueren.entity.GroupFile;
 import com.xueren.entity.GroupMember;
 import com.xueren.entity.StoredFile;
+import com.xueren.entity.User;
 import com.xueren.repository.ChatGroupRepository;
 import com.xueren.repository.GroupFileRepository;
 import com.xueren.repository.GroupMemberRepository;
 import com.xueren.repository.StoredFileRepository;
+import com.xueren.repository.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 public class GroupService {
@@ -29,17 +33,20 @@ public class GroupService {
     private final GroupFileRepository groupFileRepository;
     private final StoredFileRepository storedFileRepository;
     private final UserService userService;
+    private final UserRepository userRepository;
 
     public GroupService(ChatGroupRepository chatGroupRepository,
                         GroupMemberRepository groupMemberRepository,
                         GroupFileRepository groupFileRepository,
                         StoredFileRepository storedFileRepository,
-                        UserService userService) {
+                        UserService userService,
+                        UserRepository userRepository) {
         this.chatGroupRepository = chatGroupRepository;
         this.groupMemberRepository = groupMemberRepository;
         this.groupFileRepository = groupFileRepository;
         this.storedFileRepository = storedFileRepository;
         this.userService = userService;
+        this.userRepository = userRepository;
     }
 
     @Transactional
@@ -82,6 +89,10 @@ public class GroupService {
     private GroupVO buildGroupVO(Long groupId, Long userId) {
         ChatGroup group = getGroup(groupId);
         List<GroupMember> members = groupMemberRepository.findByGroupId(groupId);
+        // 批量加载所有成员用户，替代 N+1 查询
+        List<Long> userIds = members.stream().map(GroupMember::getUserId).distinct().toList();
+        Map<Long, User> userMap = userRepository.findAllById(userIds).stream()
+                .collect(Collectors.toMap(User::getId, Function.identity()));
         String remark = null;
         if (userId != null) {
             remark = groupMemberRepository.findByGroupIdAndUserId(groupId, userId)
@@ -97,11 +108,19 @@ public class GroupService {
                 .notice(group.getNotice())
                 .noticeUpdatedAt(group.getNoticeUpdatedAt())
                 .members(members.stream()
-                        .map(m -> userService.getById(m.getUserId()))
+                        .map(m -> userMap.get(m.getUserId()))
+                        .filter(Objects::nonNull)
+                        .map(u -> UserVO.builder()
+                                .id(u.getId())
+                                .username(u.getUsername())
+                                .nickname(u.getNickname())
+                                .avatar(u.getAvatar())
+                                .build())
                         .toList())
                 .memberVOs(members.stream()
                         .map(m -> {
-                            var user = userService.getById(m.getUserId());
+                            var user = userMap.get(m.getUserId());
+                            if (user == null) return null;
                             var displayName = m.getNickname() != null && !m.getNickname().isBlank()
                                     ? m.getNickname()
                                     : (user.getNickname() != null ? user.getNickname() : user.getUsername());
@@ -116,6 +135,7 @@ public class GroupService {
                                     .isNotificationMuted(m.getIsNotificationMuted() != null && m.getIsNotificationMuted() == 1)
                                     .build();
                         })
+                        .filter(Objects::nonNull)
                         .toList())
                 .build();
     }

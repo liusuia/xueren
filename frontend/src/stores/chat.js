@@ -46,6 +46,28 @@ export const useChatStore = defineStore('chat', () => {
     }
   }
 
+  // 加载更早的消息
+  async function loadOlderMessages(limit = 30) {
+    if (!currentConv.value || messages.value.length === 0) return []
+    const { targetType, targetId } = currentConv.value
+    // 取当前列表中最小的 id（最早的消息）
+    const oldestId = messages.value.reduce((min, m) => {
+      const id = typeof m.id === 'number' ? m.id : 0
+      return id > 0 && id < min ? id : min
+    }, Number.MAX_SAFE_INTEGER)
+    if (oldestId === Number.MAX_SAFE_INTEGER) return []
+    let older = []
+    if (targetType === 1) {
+      older = await messageApi.singleHistory(targetId, limit, oldestId)
+    } else {
+      older = await messageApi.groupHistory(targetId, limit, oldestId)
+    }
+    // 服务器返回的是倒序（最新在前），需要 reverse 后加到列表头部
+    older.reverse()
+    messages.value = [...older, ...messages.value]
+    return older
+  }
+
   // 清空聊天记录：调用后端软删除 + 清空本地列表
   async function clearHistory(targetType, targetId) {
     try {
@@ -133,10 +155,20 @@ export const useChatStore = defineStore('chat', () => {
         (message.fromUserId === targetId || message.toUserId === targetId))
       || (targetType === 2 && message.chatType === 2 && message.groupId === targetId)
     if (isMatch) {
-      // 避免重复
-      if (!messages.value.find(m => m.id === message.id)) {
-        messages.value.push(message)
+      // 1. 精确 ID 去重
+      if (messages.value.find(m => m.id === message.id)) return true
+      // 2. 替换乐观消息：自己发的消息，WS 推送可能先于 HTTP 响应到达
+      const auth = useAuthStore()
+      if (message.fromUserId === auth.user?.id) {
+        const tempIdx = messages.value.findIndex(m =>
+          String(m.id).startsWith('temp_') && m.content === message.content
+        )
+        if (tempIdx !== -1) {
+          messages.value.splice(tempIdx, 1, { ...message, _optimistic: false })
+          return true
+        }
       }
+      messages.value.push(message)
       return true
     }
     return false
@@ -158,7 +190,7 @@ export const useChatStore = defineStore('chat', () => {
 
   return {
     currentConv, messages, loading, sending, jumpMsgId,
-    openChat, closeChat, fetchMessages, sendMessage, recallMessage, clearHistory,
+    openChat, closeChat, fetchMessages, loadOlderMessages, sendMessage, recallMessage, clearHistory,
     removeMessageLocal, appendFromPush, markRecalledFromPush, sortedMessages
   }
 })

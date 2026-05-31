@@ -15,31 +15,34 @@ public interface MessageRepository extends JpaRepository<Message, Long> {
 
     @Query("""
             SELECT m FROM Message m
-            WHERE m.chatType = 1 AND m.isRecalled = 0
+            WHERE m.chatType = 1
               AND ((m.fromUserId = :userId AND m.toUserId = :peerId)
                 OR (m.fromUserId = :peerId AND m.toUserId = :userId))
               AND (:clearedAt IS NULL OR m.createdAt > :clearedAt)
+              AND (:beforeId IS NULL OR m.id < :beforeId)
             ORDER BY m.id DESC
             """)
     List<Message> findSingleChat(@Param("userId") Long userId,
                                  @Param("peerId") Long peerId,
                                  @Param("clearedAt") LocalDateTime clearedAt,
+                                 @Param("beforeId") Long beforeId,
                                  Pageable pageable);
 
     @Query("""
             SELECT m FROM Message m
-            WHERE m.chatType = 2 AND m.groupId = :groupId AND m.isRecalled = 0
+            WHERE m.chatType = 2 AND m.groupId = :groupId
               AND (:clearedAt IS NULL OR m.createdAt > :clearedAt)
+              AND (:beforeId IS NULL OR m.id < :beforeId)
             ORDER BY m.id DESC
             """)
     List<Message> findGroupChat(@Param("groupId") Long groupId,
                                  @Param("clearedAt") LocalDateTime clearedAt,
+                                 @Param("beforeId") Long beforeId,
                                  Pageable pageable);
 
     @Query("""
             SELECT m FROM Message m
-            WHERE m.isRecalled = 0
-              AND m.content LIKE %:keyword%
+            WHERE m.content LIKE %:keyword%
               AND (
                 (m.chatType = 1 AND (m.fromUserId = :userId OR m.toUserId = :userId))
                 OR

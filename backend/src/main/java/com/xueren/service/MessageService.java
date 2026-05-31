@@ -14,6 +14,7 @@ import com.xueren.repository.MessageHiddenRepository;
 import com.xueren.repository.MessageReadRepository;
 import com.xueren.repository.MessageRepository;
 import com.xueren.repository.StoredFileRepository;
+import com.xueren.repository.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.PageRequest;
@@ -38,6 +39,7 @@ public class MessageService {
     private final FriendService friendService;
     private final ConversationService conversationService;
     private final UserService userService;
+    private final UserRepository userRepository;
     private final MessagePushService messagePushService;
 
     public MessageService(MessageRepository messageRepository,
@@ -45,6 +47,7 @@ public class MessageService {
                           StoredFileRepository storedFileRepository,
                           ConversationRepository conversationRepository,
                           MessageHiddenRepository messageHiddenRepository,
+                          UserRepository userRepository,
                           FriendService friendService,
                           GroupService groupService,
                           ConversationService conversationService,
@@ -59,6 +62,7 @@ public class MessageService {
         this.groupService = groupService;
         this.conversationService = conversationService;
         this.userService = userService;
+        this.userRepository = userRepository;
         this.messagePushService = messagePushService;
     }
 
@@ -105,30 +109,51 @@ public class MessageService {
         return vo;
     }
 
-    public List<MessageVO> listSingleChat(Long userId, Long peerId, int limit) {
+    public List<MessageVO> listSingleChat(Long userId, Long peerId, int limit, Long beforeId) {
         LocalDateTime clearedAt = conversationRepository
                 .findByUserIdAndTargetTypeAndTargetId(userId, Constants.TARGET_USER, peerId)
                 .map(c -> c.getClearedAt())
                 .orElse(null);
-        List<Message> messages = new ArrayList<>(messageRepository.findSingleChat(userId, peerId, clearedAt, PageRequest.of(0, limit)));
+        List<Message> messages = new ArrayList<>(messageRepository.findSingleChat(userId, peerId, clearedAt, beforeId, PageRequest.of(0, limit)));
         messages = filterHidden(userId, messages);
         Collections.reverse(messages);
-        return messages.stream().map(this::toVO).toList();
+        return batchToVO(messages);
     }
 
-    public List<MessageVO> listGroupChat(Long userId, Long groupId, int limit) {
+    public List<MessageVO> listSingleChat(Long userId, Long peerId, int limit) {
+        return listSingleChat(userId, peerId, limit, null);
+    }
+
+    public List<MessageVO> listGroupChat(Long userId, Long groupId, int limit, Long beforeId) {
         groupService.ensureMember(groupId, userId);
         LocalDateTime clearedAt = conversationRepository
                 .findByUserIdAndTargetTypeAndTargetId(userId, Constants.TARGET_GROUP, groupId)
                 .map(c -> c.getClearedAt())
                 .orElse(null);
-        log.info("listGroupChat userId={} groupId={} clearedAt={}", userId, groupId, clearedAt);
-        List<Message> messages = new ArrayList<>(messageRepository.findGroupChat(groupId, clearedAt, PageRequest.of(0, limit)));
+        log.info("listGroupChat userId={} groupId={} clearedAt={} beforeId={}", userId, groupId, clearedAt, beforeId);
+        List<Message> messages = new ArrayList<>(messageRepository.findGroupChat(groupId, clearedAt, beforeId, PageRequest.of(0, limit)));
         log.info("listGroupChat after DB query: {} messages", messages.size());
         messages = filterHidden(userId, messages);
         log.info("listGroupChat after filterHidden: {} messages", messages.size());
         Collections.reverse(messages);
-        return messages.stream().map(this::toVO).toList();
+        return batchToVO(messages);
+    }
+
+    public List<MessageVO> listGroupChat(Long userId, Long groupId, int limit) {
+        return listGroupChat(userId, groupId, limit, null);
+    }
+
+    /** 批量加载发送者用户，避免 toVO 内 N+1 */
+    private List<MessageVO> batchToVO(List<Message> messages) {
+        if (messages.isEmpty()) return List.of();
+        Set<Long> userIds = messages.stream().map(Message::getFromUserId).collect(Collectors.toSet());
+        Map<Long, User> userMap = userRepository.findAllById(userIds).stream()
+                .collect(Collectors.toMap(User::getId, u -> u));
+        // 批量加载关联文件
+        Set<Long> fileIds = messages.stream().map(Message::getFileId).filter(Objects::nonNull).collect(Collectors.toSet());
+        Map<Long, StoredFile> fileMap = fileIds.isEmpty() ? Map.of() : storedFileRepository.findAllById(fileIds).stream()
+                .collect(Collectors.toMap(StoredFile::getId, f -> f));
+        return messages.stream().map(m -> toVO(m, userMap, fileMap)).toList();
     }
 
     /** 过滤当前用户隐藏的消息，返回可变列表供后续 Collections.reverse 使用 */
@@ -158,10 +183,37 @@ public class MessageService {
         if (message.getIsRecalled() != null && message.getIsRecalled() == 1) {
             return;
         }
+        // 2分钟内可撤回
+        if (message.getCreatedAt() != null &&
+                message.getCreatedAt().plusMinutes(2).isBefore(LocalDateTime.now())) {
+            throw new BusinessException("超过2分钟的消息无法撤回");
+        }
         message.setIsRecalled(1);
         message.setRecalledAt(LocalDateTime.now());
         messageRepository.save(message);
+        // 同步更新所有参与者的会话预览（撤回后不显示原内容）
+        updateConversationPreviewAfterRecall(message);
         messagePushService.pushRecall(toVO(message));
+    }
+
+    private void updateConversationPreviewAfterRecall(Message message) {
+        if (message.getChatType() == Constants.CHAT_SINGLE) {
+            clearPreviewIfLast(message.getFromUserId(), Constants.TARGET_USER, message.getToUserId(), message.getId());
+            clearPreviewIfLast(message.getToUserId(), Constants.TARGET_USER, message.getFromUserId(), message.getId());
+        } else {
+            groupService.listMemberUserIds(message.getGroupId()).forEach(memberId ->
+                clearPreviewIfLast(memberId, Constants.TARGET_GROUP, message.getGroupId(), message.getId())
+            );
+        }
+    }
+
+    private void clearPreviewIfLast(Long userId, Integer targetType, Long targetId, Long messageId) {
+        conversationRepository.findByUserIdAndTargetTypeAndTargetId(userId, targetType, targetId)
+                .ifPresent(c -> {
+                    if (c.getLastMessageId() != null && c.getLastMessageId().equals(messageId)) {
+                        c.setLastMessagePreview("[消息已撤回]");
+                    }
+                });
     }
 
     @Transactional
@@ -170,18 +222,19 @@ public class MessageService {
                 .orElseThrow(() -> new BusinessException("消息不存在"));
         assertCanAccessMessage(userId, message);
 
-        if (messageReadRepository.findByMessageIdAndUserId(messageId, userId).isEmpty()) {
-            MessageRead read = new MessageRead();
-            read.setMessageId(messageId);
-            read.setUserId(userId);
-            messageReadRepository.save(read);
-        }
-
         if (message.getChatType() == Constants.CHAT_SINGLE) {
+            // 单聊：保留逐条已读记录
+            if (messageReadRepository.findByMessageIdAndUserId(messageId, userId).isEmpty()) {
+                MessageRead read = new MessageRead();
+                read.setMessageId(messageId);
+                read.setUserId(userId);
+                messageReadRepository.save(read);
+            }
             conversationService.markRead(userId, Constants.TARGET_USER,
                     message.getFromUserId().equals(userId) ? message.getToUserId() : message.getFromUserId(),
                     messageId);
         } else {
+            // 群聊：仅更新 last_read_message_id，不逐条记录（避免 message_read 表爆炸）
             conversationService.markRead(userId, Constants.TARGET_GROUP, message.getGroupId(), messageId);
         }
     }
@@ -213,6 +266,15 @@ public class MessageService {
         return request.getContent() != null ? request.getContent() : "";
     }
 
+    /** 单条消息转换（send/recall 场景） */
+    private MessageVO toVO(Message message) {
+        User fromUser = userRepository.findById(message.getFromUserId()).orElse(null);
+        Map<Long, User> userMap = fromUser != null ? Map.of(fromUser.getId(), fromUser) : Map.of();
+        StoredFile file = message.getFileId() != null ? storedFileRepository.findById(message.getFileId()).orElse(null) : null;
+        Map<Long, StoredFile> fileMap = file != null ? Map.of(file.getId(), file) : Map.of();
+        return toVO(message, userMap, fileMap);
+    }
+
     private void assertCanAccessMessage(Long userId, Message message) {
         if (message.getChatType() == Constants.CHAT_SINGLE) {
             if (!userId.equals(message.getFromUserId()) && !userId.equals(message.getToUserId())) {
@@ -223,11 +285,11 @@ public class MessageService {
         }
     }
 
-    private MessageVO toVO(Message message) {
-        User fromUser = userService.requireUser(message.getFromUserId());
+    private MessageVO toVO(Message message, Map<Long, User> userMap, Map<Long, StoredFile> fileMap) {
+        User fromUser = userMap.get(message.getFromUserId());
         String fileUrl = null;
         if (message.getFileId() != null) {
-            StoredFile file = storedFileRepository.findById(message.getFileId()).orElse(null);
+            StoredFile file = fileMap.get(message.getFileId());
             if (file != null) {
                 fileUrl = file.getStoredPath();
             }
@@ -250,8 +312,8 @@ public class MessageService {
                 .groupId(message.getGroupId())
                 .content(message.getIsRecalled() != null && message.getIsRecalled() == 1 ? null : message.getContent())
                 .msgType(message.getMsgType())
-                .fileId(message.getFileId())
-                .fileUrl(fileUrl)
+                .fileId(message.getIsRecalled() != null && message.getIsRecalled() == 1 ? null : message.getFileId())
+                .fileUrl(message.getIsRecalled() != null && message.getIsRecalled() == 1 ? null : fileUrl)
                 .isRecalled(message.getIsRecalled())
                 .createdAt(message.getCreatedAt())
                 .mentionedUserIds(mentionedUserIds)

@@ -4,7 +4,8 @@ import http from './http'
 export const authApi = {
   login: (data) => http.post('/auth/login', data),
   register: (data) => http.post('/auth/register', data),
-  refresh: (data) => http.post('/auth/refresh', data)
+  refresh: (data) => http.post('/auth/refresh', data),
+  logout: () => http.post('/auth/logout')
 }
 
 // ==================== User ====================
@@ -63,8 +64,8 @@ export const groupApi = {
 // ==================== Message ====================
 export const messageApi = {
   send: (data) => http.post('/messages', data),
-  singleHistory: (peerId, limit = 50) => http.get(`/messages/single/${peerId}`, { params: { limit } }),
-  groupHistory: (groupId, limit = 50) => http.get(`/messages/group/${groupId}`, { params: { limit } }),
+  singleHistory: (peerId, limit = 50, beforeId) => http.get(`/messages/single/${peerId}`, { params: beforeId ? { limit, beforeId } : { limit } }),
+  groupHistory: (groupId, limit = 50, beforeId) => http.get(`/messages/group/${groupId}`, { params: beforeId ? { limit, beforeId } : { limit } }),
   recall: (messageId) => http.post(`/messages/${messageId}/recall`),
   markRead: (messageId) => http.post(`/messages/${messageId}/read`),
   search: (keyword) => http.get('/messages/search', { params: { keyword } }),

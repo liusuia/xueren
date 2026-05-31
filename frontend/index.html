@@ -11,6 +11,13 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Russo+One&display=swap" rel="stylesheet" />
     <title>雪人 Xueren</title>
+    <!-- 防主题闪烁：页面渲染前立即应用 localStorage 中的主题 -->
+    <script>
+      (function() {
+        var t = localStorage.getItem('xr-theme') || 'dark';
+        document.documentElement.setAttribute('data-theme', t);
+      })();
+    </script>
   </head>
   <body>
     <div id="app"></div>

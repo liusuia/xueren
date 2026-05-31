@@ -31,4 +31,10 @@ public class AuthController {
     public ApiResponse<AuthResponse> refresh(@Valid @RequestBody RefreshRequest request) {
         return ApiResponse.ok(authService.refresh(request));
     }
+
+    @PostMapping("/logout")
+    public ApiResponse<Void> logout() {
+        authService.logout(AuthHolder.currentUserId());
+        return ApiResponse.ok("已登出", null);
+    }
 }

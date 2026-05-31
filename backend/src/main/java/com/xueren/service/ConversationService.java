@@ -3,15 +3,19 @@ package com.xueren.service;
 import com.xueren.common.BusinessException;
 import com.xueren.common.Constants;
 import com.xueren.dto.ConversationVO;
+import com.xueren.entity.ChatGroup;
 import com.xueren.entity.Conversation;
 import com.xueren.entity.Message;
+import com.xueren.entity.User;
 import com.xueren.netty.ChannelManager;
+import com.xueren.repository.ChatGroupRepository;
 import com.xueren.repository.ConversationRepository;
+import com.xueren.repository.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.List;
+import java.util.*;
 
 @Service
 public class ConversationService {
@@ -20,22 +24,60 @@ public class ConversationService {
     private final UserService userService;
     private final GroupService groupService;
     private final ChannelManager channelManager;
+    private final UserRepository userRepository;
+    private final ChatGroupRepository chatGroupRepository;
 
     public ConversationService(ConversationRepository conversationRepository,
                                UserService userService,
                                GroupService groupService,
-                               ChannelManager channelManager) {
+                               ChannelManager channelManager,
+                               UserRepository userRepository,
+                               ChatGroupRepository chatGroupRepository) {
         this.conversationRepository = conversationRepository;
         this.userService = userService;
         this.groupService = groupService;
         this.channelManager = channelManager;
+        this.userRepository = userRepository;
+        this.chatGroupRepository = chatGroupRepository;
     }
 
     public List<ConversationVO> listConversations(Long userId) {
-        return conversationRepository.findByUserIdOrderByLastMessageAtDesc(userId)
-                .stream()
-                .map(this::toVO)
+        List<Conversation> convs = conversationRepository.findByUserIdOrderByLastMessageAtDesc(userId);
+        // 批量加载用户和群组，替代 N+1
+        List<Long> userIds = convs.stream().filter(c -> c.getTargetType() == Constants.TARGET_USER).map(Conversation::getTargetId).distinct().toList();
+        List<Long> groupIds = convs.stream().filter(c -> c.getTargetType() == Constants.TARGET_GROUP).map(Conversation::getTargetId).distinct().toList();
+        Map<Long, User> userMap = userIds.isEmpty() ? Map.of() : userRepository.findAllById(userIds).stream().collect(java.util.stream.Collectors.toMap(User::getId, u -> u));
+        Map<Long, ChatGroup> groupMap = groupIds.isEmpty() ? Map.of() : chatGroupRepository.findAllById(groupIds).stream().collect(java.util.stream.Collectors.toMap(ChatGroup::getId, g -> g));
+        return convs.stream()
+                .map(c -> toVO(c, userMap, groupMap))
                 .toList();
+    }
+
+    private ConversationVO toVO(Conversation conversation, Map<Long, User> userMap, Map<Long, ChatGroup> groupMap) {
+        String name;
+        String avatar;
+        Boolean isOnline = false;
+        if (conversation.getTargetType() == Constants.TARGET_USER) {
+            var user = userMap.get(conversation.getTargetId());
+            name = user != null ? (user.getNickname() != null && !user.getNickname().isEmpty() ? user.getNickname() : user.getUsername()) : "";
+            avatar = user != null ? user.getAvatar() : null;
+            isOnline = channelManager.isOnline(conversation.getTargetId());
+        } else {
+            var group = groupMap.get(conversation.getTargetId());
+            name = group != null ? group.getName() : "";
+            avatar = group != null ? group.getAvatar() : null;
+        }
+        return ConversationVO.builder()
+                .id(conversation.getId())
+                .targetType(conversation.getTargetType())
+                .targetId(conversation.getTargetId())
+                .targetName(name)
+                .targetAvatar(avatar)
+                .lastMessagePreview(conversation.getLastMessagePreview())
+                .lastMessageAt(conversation.getLastMessageAt())
+                .unreadCount(conversation.getUnreadCount())
+                .targetIsOnline(isOnline)
+                .build();
     }
 
     @Transactional
@@ -110,44 +152,26 @@ public class ConversationService {
                     return c;
                 });
 
+        boolean isNew = conversation.getId() == null;
         conversation.setLastMessageId(message.getId());
         conversation.setLastMessagePreview(buildPreview(message));
         conversation.setLastMessageAt(message.getCreatedAt() != null ? message.getCreatedAt() : LocalDateTime.now());
-        if (increaseUnread) {
-            conversation.setUnreadCount((conversation.getUnreadCount() == null ? 0 : conversation.getUnreadCount()) + 1);
-        } else {
-            // 自己发的消息，清空未读数并更新已读位置
-            conversation.setUnreadCount(0);
-            conversation.setLastReadMessageId(message.getId());
-        }
-        conversationRepository.save(conversation);
-    }
 
-    private ConversationVO toVO(Conversation conversation) {
-        String name;
-        String avatar;
-        Boolean isOnline = false;
-        if (conversation.getTargetType() == Constants.TARGET_USER) {
-            var user = userService.getById(conversation.getTargetId());
-            name = user.getNickname() != null && !user.getNickname().isEmpty() ? user.getNickname() : user.getUsername();
-            avatar = user.getAvatar();
-            isOnline = channelManager.isOnline(conversation.getTargetId());
+        if (isNew) {
+            conversation.setUnreadCount(increaseUnread ? 1 : 0);
+            if (!increaseUnread) conversation.setLastReadMessageId(message.getId());
+            conversationRepository.save(conversation);
         } else {
-            var group = groupService.getGroup(conversation.getTargetId());
-            name = group.getName();
-            avatar = group.getAvatar();
+            if (!increaseUnread) {
+                conversation.setUnreadCount(0);
+                conversation.setLastReadMessageId(message.getId());
+            }
+            conversationRepository.save(conversation);
+            // 对已存在会话的未读递增用原子 UPDATE，避免读-改-写竟态
+            if (increaseUnread) {
+                conversationRepository.incrementUnread(conversation.getId());
+            }
         }
-        return ConversationVO.builder()
-                .id(conversation.getId())
-                .targetType(conversation.getTargetType())
-                .targetId(conversation.getTargetId())
-                .targetName(name)
-                .targetAvatar(avatar)
-                .lastMessagePreview(conversation.getLastMessagePreview())
-                .lastMessageAt(conversation.getLastMessageAt())
-                .unreadCount(conversation.getUnreadCount())
-                .targetIsOnline(isOnline)
-                .build();
     }
 
     private String buildPreview(Message message) {

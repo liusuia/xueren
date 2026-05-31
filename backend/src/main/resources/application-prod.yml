@@ -1,0 +1,35 @@
+# 生产环境配置 (java -jar xxx.jar --spring.profiles.active=prod)
+
+spring:
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+
+  jpa:
+    hibernate:
+      ddl-auto: validate         # 生产严禁 update
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: false
+
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 50MB
+
+logging:
+  level:
+    root: WARN
+    com.xueren: INFO
+  file:
+    name: logs/xueren.log
+    max-size: 100MB
+    max-history: 30

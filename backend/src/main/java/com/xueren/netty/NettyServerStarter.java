@@ -65,7 +65,13 @@ public class NettyServerStarter implements ApplicationRunner {
                         pipeline.addLast(webSocketFrameHandler);
                     }
                 });
-        ChannelFuture future = bootstrap.bind(nettyProperties.getPort()).sync();
+        ChannelFuture future = bootstrap.bind(nettyProperties.getPort()).addListener(f -> {
+            if (f.isSuccess()) {
+                log.info("Netty WebSocket started on port {}, path {}", nettyProperties.getPort(), wsPath);
+            } else {
+                log.error("Netty bind failed on port {}", nettyProperties.getPort(), f.cause());
+            }
+        }).sync();
         serverChannel = future.channel();
         log.info("Netty WebSocket started on port {}, path {}", nettyProperties.getPort(), wsPath);
     }

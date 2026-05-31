@@ -101,8 +101,8 @@ function onAvatarClick() {
 
 const emit = defineEmits(['close', 'groupInfo', 'userInfo', 'friendInfo'])
 
-function loadOlder() {
-  // 暂不实现分页加载，后续可扩展
+async function loadOlder() {
+  await chat.loadOlderMessages()
 }
 
 async function onSendText(content, mentions) {

@@ -9,24 +9,30 @@ import com.xueren.entity.User;
 import com.xueren.netty.ChannelManager;
 import com.xueren.repository.ConversationRepository;
 import com.xueren.repository.FriendRepository;
+import com.xueren.repository.UserRepository;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 public class FriendService {
 
     private final FriendRepository friendRepository;
     private final UserService userService;
+    private final UserRepository userRepository;
     private final ConversationRepository conversationRepository;
     private final ChannelManager channelManager;
 
     public FriendService(FriendRepository friendRepository, UserService userService,
+                        UserRepository userRepository,
                         ConversationRepository conversationRepository, ChannelManager channelManager) {
         this.friendRepository = friendRepository;
         this.userService = userService;
+        this.userRepository = userRepository;
         this.conversationRepository = conversationRepository;
         this.channelManager = channelManager;
     }
@@ -80,9 +86,16 @@ public class FriendService {
             reverse.setUserId(userId);
             reverse.setFriendId(requesterId);
             reverse.setRequesterId(requesterId);
+            reverse.setStatus(Constants.FRIEND_ACCEPTED);
+            try {
+                friendRepository.save(reverse);
+            } catch (DataIntegrityViolationException e) {
+                // 并发创建被唯一约束拦截，另一条记录已生效
+            }
+        } else {
+            reverse.setStatus(Constants.FRIEND_ACCEPTED);
+            friendRepository.save(reverse);
         }
-        reverse.setStatus(Constants.FRIEND_ACCEPTED);
-        friendRepository.save(reverse);
     }
 
     @Transactional
@@ -152,10 +165,12 @@ public class FriendService {
     }
 
     public List<FriendVO> listFriends(Long userId) {
-        return friendRepository.findByUserIdAndStatus(userId, Constants.FRIEND_ACCEPTED)
-                .stream()
-                .map(f -> toVO(f, userService.requireUser(f.getFriendId())))
-                .toList();
+        List<Friend> friends = friendRepository.findByUserIdAndStatus(userId, Constants.FRIEND_ACCEPTED);
+        // 批量加载好友用户
+        List<Long> friendIds = friends.stream().map(Friend::getFriendId).distinct().toList();
+        Map<Long, User> userMap = friendIds.isEmpty() ? Map.of()
+                : userRepository.findAllById(friendIds).stream().collect(Collectors.toMap(User::getId, Function.identity()));
+        return friends.stream().map(f -> toVO(f, userMap.get(f.getFriendId()))).toList();
     }
 
     public List<Long> listBlockedUserIds(Long userId) {
@@ -173,13 +188,13 @@ public class FriendService {
     }
 
     public List<FriendVO> listIncomingRequests(Long userId) {
-        List<FriendVO> result = new ArrayList<>();
-        for (Friend f : friendRepository.findByFriendIdAndStatus(userId, Constants.FRIEND_PENDING)) {
-            if (f.getRequesterId().equals(f.getUserId())) {
-                result.add(toVO(f, userService.requireUser(f.getUserId())));
-            }
-        }
-        return result;
+        List<Friend> requests = friendRepository.findByFriendIdAndStatus(userId, Constants.FRIEND_PENDING);
+        List<Friend> valid = requests.stream().filter(f -> f.getRequesterId().equals(f.getUserId())).toList();
+        // 批量加载申请者用户
+        List<Long> requesterIds = valid.stream().map(Friend::getUserId).distinct().toList();
+        Map<Long, User> userMap = requesterIds.isEmpty() ? Map.of()
+                : userRepository.findAllById(requesterIds).stream().collect(Collectors.toMap(User::getId, Function.identity()));
+        return valid.stream().map(f -> toVO(f, userMap.get(f.getUserId()))).toList();
     }
 
     public void ensureFriend(Long userId, Long peerId) {

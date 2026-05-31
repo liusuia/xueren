@@ -27,14 +27,16 @@ public class MessageController {
 
     @GetMapping("/single/{peerId}")
     public ApiResponse<List<MessageVO>> singleChat(@PathVariable Long peerId,
-                                                   @RequestParam(defaultValue = "50") int limit) {
-        return ApiResponse.ok(messageService.listSingleChat(AuthHolder.currentUserId(), peerId, limit));
+                                                   @RequestParam(defaultValue = "50") int limit,
+                                                   @RequestParam(required = false) Long beforeId) {
+        return ApiResponse.ok(messageService.listSingleChat(AuthHolder.currentUserId(), peerId, limit, beforeId));
     }
 
     @GetMapping("/group/{groupId}")
     public ApiResponse<List<MessageVO>> groupChat(@PathVariable Long groupId,
-                                                  @RequestParam(defaultValue = "50") int limit) {
-        return ApiResponse.ok(messageService.listGroupChat(AuthHolder.currentUserId(), groupId, limit));
+                                                  @RequestParam(defaultValue = "50") int limit,
+                                                  @RequestParam(required = false) Long beforeId) {
+        return ApiResponse.ok(messageService.listGroupChat(AuthHolder.currentUserId(), groupId, limit, beforeId));
     }
 
     @PostMapping("/{messageId}/recall")

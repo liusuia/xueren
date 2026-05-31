@@ -108,6 +108,15 @@ onMessageRecalled((msg) => {
   const message = msg.data || msg
   if (message.id) {
     chat.markRecalledFromPush(message.id)
+    // 同步更新会话列表预览为「消息已撤回」
+    // 单聊：每个参与者的会话 target 是对方；群聊：target 是群 ID
+    let convTargetId
+    if (message.chatType === 1) {
+      convTargetId = message.fromUserId === auth.user?.id ? message.toUserId : message.fromUserId
+    } else {
+      convTargetId = message.groupId
+    }
+    convStore.updatePreviewToRecall(message.chatType, convTargetId, message.id)
   }
 })
 

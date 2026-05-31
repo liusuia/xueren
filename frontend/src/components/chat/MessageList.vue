@@ -35,10 +35,12 @@ import MessageItem from './MessageItem.vue'
 import LoadingSpinner from '../common/LoadingSpinner.vue'
 import ContextMenu from '../common/ContextMenu.vue'
 import { useChatStore } from '../../stores/chat'
+import { useAuthStore } from '../../stores/auth'
 import { messageApi } from '../../api/endpoints'
 import { formatFullTime } from '../../utils/format'
 
 const chatStore = useChatStore()
+const auth = useAuthStore()
 
 const props = defineProps({
   messages: { type: Array, default: () => [] },
@@ -62,9 +64,17 @@ let ctxMsg = null
 function onMsgCtx(e, msg) {
   e.stopPropagation()
   ctxMsg = msg
-  ctxItems.value = [
-    { label: '删除', action: 'delete', danger: true }
-  ]
+  const myId = Number(auth.user?.id)
+  const msgFromId = Number(msg.fromUserId)
+  const isMyMsg = myId > 0 && msgFromId === myId
+  const isRecalled = msg.isRecalled === 1 || msg.isRecalled === true
+  const items = []
+  // 自己的消息且未撤回：显示撤回按钮（时限由后端校验）
+  if (isMyMsg && !isRecalled) {
+    items.push({ label: '撤回', action: 'recall' })
+  }
+  items.push({ label: '删除', action: 'delete', danger: true })
+  ctxItems.value = items
   ctxPos.value = { x: e.clientX, y: e.clientY }
   ctxVisible.value = true
 }
@@ -77,6 +87,10 @@ async function onMsgCtxAction(item) {
       await messageApi.hide(ctxMsg.id)
     } catch { /* 后端调用失败不影响前端移除 */ }
     chatStore.removeMessageLocal(ctxMsg.id)
+  } else if (item.action === 'recall') {
+    try {
+      await chatStore.recallMessage(ctxMsg.id)
+    } catch { /* 后端已校验 */ }
   }
 }
 
@@ -99,11 +113,11 @@ function onScroll() {
   showScrollBtn.value = scrollHeight - scrollTop - clientHeight > 150
 }
 
-// 新消息自动滚到底部
+// 新消息自动滚到底部（用户需在底部附近，且忽略初始空 DOM）
 watch(() => props.messages.length, () => {
   if (rootRef.value) {
     const { scrollTop, scrollHeight, clientHeight } = rootRef.value
-    if (scrollHeight - scrollTop - clientHeight < 200) {
+    if (scrollHeight > 0 && scrollHeight - scrollTop - clientHeight < 200) {
       scrollToBottom()
     }
   }

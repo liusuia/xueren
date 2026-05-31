@@ -43,7 +43,9 @@ const props = defineProps({
 defineEmits(['userClick'])
 const isSelf = computed(() => props.msg.fromUserId === auth.user?.id)
 const systemText = computed(() => {
-  if (props.msg.isRecalled) return '消息已撤回'
+  if (props.msg.isRecalled) {
+    return isSelf.value ? '你撤回了一条消息' : (senderName.value || '对方') + '撤回了一条消息'
+  }
   if (props.msg.msgType === MSG_TYPE.SYSTEM) return props.msg.content || ''
   return props.msg.content || ''
 })

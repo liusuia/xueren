@@ -93,7 +93,7 @@ function mapMessage(m) {
   return {
     id: m.id, senderId: m.fromUserId, senderName: m.fromNickname,
     senderAvatar: m.fromUserAvatar, chatType: m.chatType,
-    type: ['', 'text', 'image', 'file'][m.msgType || 1] || 'text',
+    type: {1:'text',2:'image',3:'file',4:'emoji',5:'system'}[m.msgType] || 'text',
     content: m.content, createdAt: m.createdAt, fileUrl: m.fileUrl
   }
 }

@@ -4,7 +4,7 @@ let manualClose = false
 let currentToken = null
 let pingTimer = null
 let reconnectTimer = null
-let onStateChange = null
+let onStateChangeList = []
 
 function getWsUrl() {
   const hostname = window.location.hostname
@@ -20,11 +20,13 @@ function getWsUrl() {
 }
 
 export function setOnStateChange(fn) {
-  onStateChange = fn
+  onStateChangeList.push(fn)
+  return () => { onStateChangeList = onStateChangeList.filter(f => f !== fn) }
 }
 
 function notifyState() {
-  if (onStateChange) onStateChange(socket && socket.readyState === WebSocket.OPEN)
+  const isOpen = socket && socket.readyState === WebSocket.OPEN
+  onStateChangeList.forEach(fn => fn(isOpen))
 }
 
 export function connectWs(token) {

@@ -8,6 +8,7 @@ import com.xueren.entity.UserToken;
 import com.xueren.repository.UserRepository;
 import com.xueren.repository.UserTokenRepository;
 import com.xueren.security.JwtUtil;
+import com.xueren.security.LoginRateLimiter;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,6 +30,7 @@ public class AuthService {
     private final JwtProperties jwtProperties;
     private final UserService userService;
     private final SecureRandom secureRandom = new SecureRandom();
+    private final LoginRateLimiter loginRateLimiter = new LoginRateLimiter();
 
     public AuthService(UserRepository userRepository,
                        UserTokenRepository userTokenRepository,
@@ -72,14 +74,30 @@ public class AuthService {
         if (request.getPassword() == null || request.getPassword().isBlank()) {
             throw new BusinessException("请输入密码");
         }
+
+        String username = request.getUsername().trim();
+        // 限流检查：连续失败5次锁定15分钟
+        if (loginRateLimiter.isLocked(username)) {
+            throw new BusinessException("登录失败次数过多，请15分钟后再试");
+        }
+
         // 统一错误消息，防止用户枚举
-        User user = userRepository.findByUsername(request.getUsername().trim()).orElse(null);
+        User user = userRepository.findByUsername(username).orElse(null);
         if (user == null || !passwordEncoder.matches(request.getPassword(), user.getPassword())) {
+            loginRateLimiter.recordFailure(username);
             throw new BusinessException("用户名或密码错误");
         }
+
+        // 登录成功，清除失败记录
+        loginRateLimiter.clear(username);
         user.setLastOnlineAt(LocalDateTime.now());
         userRepository.save(user);
         return buildAuthResponse(user);
+    }
+
+    @Transactional
+    public void logout(Long userId) {
+        userTokenRepository.deleteByUserId(userId);
     }
 
     @Transactional

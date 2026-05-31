@@ -96,11 +96,14 @@ function onJump(msg) {
   emit('close')
 }
 
+function escapeHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')
+}
 function highlight(text) {
   const q = kw.value.trim()
-  if (!q) return text
+  if (!q) return escapeHtml(text)
   const escaped = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-  return text.replace(new RegExp(`(${escaped})`, 'gi'), '<mark>$1</mark>')
+  return escapeHtml(text).replace(new RegExp(`(${escapeHtml(escaped)})`, 'gi'), '<mark>$1</mark>')
 }
 </script>
 

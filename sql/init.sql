@@ -141,3 +141,17 @@ CREATE TABLE IF NOT EXISTS user_token (
     INDEX idx_token_hash (token_hash),
     INDEX idx_expires (expires_at)
 );
+
+-- ============ 外键约束 ============
+-- 注意：如果已有孤儿数据，需要先清理再添加外键
+
+-- ALTER TABLE friend ADD CONSTRAINT fk_friend_user FOREIGN KEY (user_id) REFERENCES user(id);
+-- ALTER TABLE friend ADD CONSTRAINT fk_friend_friend FOREIGN KEY (friend_id) REFERENCES user(id);
+-- ALTER TABLE message ADD CONSTRAINT fk_msg_from FOREIGN KEY (from_user_id) REFERENCES user(id);
+-- ALTER TABLE message ADD CONSTRAINT fk_msg_file FOREIGN KEY (file_id) REFERENCES file(id);
+-- ALTER TABLE group_member ADD CONSTRAINT fk_gm_group FOREIGN KEY (group_id) REFERENCES `group`(id);
+-- ALTER TABLE group_member ADD CONSTRAINT fk_gm_user FOREIGN KEY (user_id) REFERENCES user(id);
+-- ALTER TABLE file ADD CONSTRAINT fk_file_uploader FOREIGN KEY (uploader_id) REFERENCES user(id);
+-- ALTER TABLE conversation ADD CONSTRAINT fk_conv_user FOREIGN KEY (user_id) REFERENCES user(id);
+-- ALTER TABLE message_hidden ADD CONSTRAINT fk_mh_user FOREIGN KEY (user_id) REFERENCES user(id);
+-- ALTER TABLE message_hidden ADD CONSTRAINT fk_mh_msg FOREIGN KEY (message_id) REFERENCES message(id);

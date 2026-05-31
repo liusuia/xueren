@@ -69,6 +69,14 @@ export const useConversationStore = defineStore('conversations', () => {
     }
   }
 
+  // 消息撤回后：会话列表预览改为 [消息已撤回]
+  function updatePreviewToRecall(targetType, targetId, messageId) {
+    const conv = list.value.find(c => c.targetType === targetType && c.targetId === targetId)
+    if (conv && conv.lastMessageId === messageId) {
+      conv.lastMessagePreview = '[消息已撤回]'
+    }
+  }
+
   function clearPreview(targetType, targetId) {
     const conv = list.value.find(c => c.targetType === targetType && c.targetId === targetId)
     if (conv) {
@@ -131,6 +139,6 @@ export const useConversationStore = defineStore('conversations', () => {
   return {
     list, loading,
     fetchConversations, deleteConversation, markRead, markReadLocal,
-    updateFromPush, clearPreview, setMuted, isMuted, togglePinned, isPinned
+    updateFromPush, clearPreview, updatePreviewToRecall, setMuted, isMuted, togglePinned, isPinned
   }
 })
