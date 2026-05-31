@@ -63,7 +63,8 @@ export const useChatStore = defineStore('chat', () => {
       targetId: conversation.targetId,
       targetName: conversation.targetName || conversation.name || '',
       targetAvatar: conversation.targetAvatar || conversation.avatar || '',
-      online: conversation.targetIsOnline ?? conversation.online ?? false
+      online: conversation.targetIsOnline ?? conversation.online ?? false,
+      draft: conversation.draft || ''
     }
     messages.value = []
     jumpMsgId.value = conversation._jumpToMsgId || null

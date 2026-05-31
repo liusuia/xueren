@@ -54,6 +54,15 @@
 
         <!-- 按钮 -->
         <button class="pp-btn-save" @click="onSave" :disabled="saving">{{ saving ? '保存中...' : '保存' }}</button>
+        <button class="pp-btn-pass" @click="showPassForm = !showPassForm">修改密码</button>
+        <div v-if="showPassForm" class="pp-pass-form">
+          <input v-model="passForm.oldPwd" type="password" class="pp-inp-text" placeholder="原密码" />
+          <input v-model="passForm.newPwd" type="password" class="pp-inp-text" placeholder="新密码（至少6位）" />
+          <div class="pp-pass-btns">
+            <button class="pp-pass-save" @click="changePass">确认</button>
+            <button class="pp-pass-cancel" @click="showPassForm = false">取消</button>
+          </div>
+        </div>
         <button class="pp-btn-logout" @click="onLogout">退出登录</button>
         <button class="pp-btn-delete" @click="onDeleteAccount">注销账号</button>
       </div>
@@ -83,6 +92,18 @@ const newId = ref('')
 const emailEditing = ref(false)
 const emailForm = ref({ email: '', code: '' })
 const emailSending = ref(false)
+const showPassForm = ref(false)
+const passForm = ref({ oldPwd: '', newPwd: '' })
+
+async function changePass() {
+  if (!passForm.value.oldPwd || !passForm.value.newPwd) { showError('请填写完整'); return }
+  if (passForm.value.newPwd.length < 6) { showError('新密码至少6位'); return }
+  try {
+    await http.put('/users/password', { oldPassword: passForm.value.oldPwd, newPassword: passForm.value.newPwd })
+    success('密码已修改，请重新登录')
+    auth.logout()
+  } catch (e) { showError(e.message || '修改失败') }
+}
 
 const form = reactive({
   nickname: auth.user?.nickname || '',
@@ -199,6 +220,12 @@ async function onDeleteAccount() {
 .pp-btn-save:disabled { opacity: 0.5; }
 .pp-btn-logout { width: 100%; margin-top: 8px; padding: 10px; border: none; border-radius: 8px; background: transparent; color: #e74c3c; font-size: 13px; cursor: pointer; }
 .pp-btn-logout:hover { background: rgba(231,76,60,0.06); }
+.pp-btn-pass { width: 100%; padding: 8px; border: none; border-radius: 8px; background: transparent; color: var(--text-muted, #888); font-size: 12px; cursor: pointer; margin-top: 4px; }
+.pp-btn-pass:hover { color: var(--text-primary, #e8e8ea); }
+.pp-pass-form { width: 100%; display: flex; flex-direction: column; gap: 6px; margin-top: 6px; }
+.pp-pass-btns { display: flex; gap: 8px; }
+.pp-pass-save { flex: 1; padding: 6px; border: none; border-radius: 4px; background: var(--accent, #f7931e); color: #fff; font-size: 12px; cursor: pointer; }
+.pp-pass-cancel { flex: 1; padding: 6px; border: 1px solid var(--border, #3a3c44); border-radius: 4px; background: transparent; color: var(--text-muted, #888); font-size: 12px; cursor: pointer; }
 .pp-btn-delete { width: 100%; margin-top: 4px; padding: 10px; border: none; border-radius: 8px; background: transparent; color: var(--text-muted, #555); font-size: 12px; cursor: pointer; }
 .pp-btn-delete:hover { color: #e74c3c; }
 .pp-info-val { font-size: 13px; color: var(--text-primary, #e8e8ea); flex: 1; text-align: right; cursor: pointer; }

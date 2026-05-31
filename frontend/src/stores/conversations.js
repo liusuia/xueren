@@ -113,9 +113,7 @@ export const useConversationStore = defineStore('conversations', () => {
 
     if (existing) {
       existing.lastMessageId = msg.id
-      if (!skipUnread) {
-        existing.lastMessagePreview = buildPreview(msg)
-      }
+      existing.lastMessagePreview = buildPreview(msg)
       existing.lastMessageAt = msg.createdAt
       if (!skipUnread) {
         existing.unreadCount = (existing.unreadCount || 0) + 1
@@ -133,10 +131,17 @@ export const useConversationStore = defineStore('conversations', () => {
 
   function buildPreview(msg) {
     if (msg.isRecalled) return '[消息已撤回]'
-    if (msg.msgType === 2) return '[图片]'
-    if (msg.msgType === 3) return '[文件]'
-    if (msg.msgType === 5) return '[系统消息]'
-    const text = msg.content || ''
+    let prefix = ''
+    if (msg.chatType === 2) {
+      const name = msg.fromNickname || msg.fromUserName || ''
+      if (name) prefix = name + ': '
+    }
+    let content
+    if (msg.msgType === 2) content = '[图片]'
+    else if (msg.msgType === 3) content = '[文件]'
+    else if (msg.msgType === 5) content = '[系统消息]'
+    else content = msg.content || ''
+    const text = prefix + content
     return text.length > 50 ? text.slice(0, 50) + '...' : text
   }
 

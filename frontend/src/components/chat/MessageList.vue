@@ -37,6 +37,20 @@
       @close="ctxVisible = false"
       @action="onMsgCtxAction"
     />
+
+    <!-- 转发弹窗 -->
+    <Teleport to="body">
+      <div v-if="showForward" class="fw-overlay" @click="showForward = false">
+        <div class="fw-dialog" @click.stop>
+          <div class="fw-hd">选择转发到</div>
+          <div class="fw-list">
+            <div v-for="c in convStore.list" :key="c.id" class="fw-item" @click="doForward(c)">
+              <span>{{ c.targetName }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Teleport>
   </div>
 </template>
 
@@ -46,11 +60,13 @@ import MessageItem from './MessageItem.vue'
 import LoadingSpinner from '../common/LoadingSpinner.vue'
 import ContextMenu from '../common/ContextMenu.vue'
 import { useChatStore } from '../../stores/chat'
+import { useConversationStore } from '../../stores/conversations'
 import { useAuthStore } from '../../stores/auth'
 import { messageApi } from '../../api/endpoints'
 import { formatFullTime } from '../../utils/format'
 
 const chatStore = useChatStore()
+const convStore = useConversationStore()
 const auth = useAuthStore()
 
 const props = defineProps({
@@ -72,6 +88,24 @@ const ctxPos = ref({ x: 0, y: 0 })
 const ctxItems = ref([])
 let ctxMsg = null
 
+const showForward = ref(false)
+const forwardMsg = ref(null)
+async function doForward(conv) {
+  showForward.value = false
+  if (!forwardMsg.value) return
+  try {
+    const payload = {
+      chatType: conv.targetType,
+      msgType: forwardMsg.value.msgType || 1,
+      content: forwardMsg.value.content || '',
+      fileId: forwardMsg.value.fileId || undefined
+    }
+    if (conv.targetType === 1) payload.toUserId = conv.targetId
+    else payload.groupId = conv.targetId
+    await messageApi.send(payload)
+  } catch {}
+}
+
 function onMsgCtx(e, msg) {
   e.stopPropagation()
   ctxMsg = msg
@@ -82,6 +116,10 @@ function onMsgCtx(e, msg) {
   const items = []
   // 多选
   items.push({ label: '多选', action: 'multiSelect' })
+  // 转发
+  if (!isRecalled) {
+    items.push({ label: '转发', action: 'forward' })
+  }
   // 引用回复（任何非撤回消息都可回复）
   if (!isRecalled) {
     items.push({ label: '回复', action: 'reply' })
@@ -119,6 +157,9 @@ async function onMsgCtxAction(item) {
     chatStore.toggleMultiSelect()
   } else if (item.action === 'edit') {
     chatStore.startEdit(ctxMsg.id, ctxMsg.content)
+  } else if (item.action === 'forward') {
+    forwardMsg.value = ctxMsg
+    showForward.value = true
   }
 }
 
@@ -215,4 +256,10 @@ watch(() => chatStore.jumpMsgId, (msgId) => {
 .ml-ms-count { font-size: 13px; color: var(--text-primary, #e8e8ea); }
 .ml-ms-del { padding: 6px 20px; border: none; border-radius: 4px; background: #e74c3c; color: #fff; font-size: 13px; cursor: pointer; }
 .ml-ms-del:disabled { opacity: 0.4; cursor: not-allowed; }
+.fw-overlay { position: fixed; inset: 0; z-index: 300; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; }
+.fw-dialog { width: 300px; max-height: 400px; border-radius: 12px; background: var(--bg-dialog, #252529); overflow: hidden; display: flex; flex-direction: column; }
+.fw-hd { padding: 14px 18px; font-size: 14px; font-weight: 600; color: var(--text-primary, #e8e8ea); border-bottom: 1px solid var(--border, #3a3c44); }
+.fw-list { flex: 1; overflow-y: auto; padding: 4px 0; }
+.fw-item { padding: 12px 18px; cursor: pointer; color: var(--text-primary, #e8e8ea); font-size: 13px; }
+.fw-item:hover { background: var(--bg-hover, rgba(255,255,255,0.06)); }
 </style>

@@ -46,6 +46,12 @@ public class UserController {
         return ApiResponse.ok(userService.changeEmail(AuthHolder.currentUserId(), body.get("email"), body.get("code")));
     }
 
+    @PutMapping("/password")
+    public ApiResponse<Void> changePassword(@RequestBody Map<String, String> body) {
+        userService.changePassword(AuthHolder.currentUserId(), body.get("oldPassword"), body.get("newPassword"));
+        return ApiResponse.ok("密码已修改", null);
+    }
+
     @DeleteMapping("/me")
     public ApiResponse<Void> deleteAccount() {
         userService.deleteAccount(AuthHolder.currentUserId());

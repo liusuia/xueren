@@ -21,7 +21,10 @@
         <span class="ci-time">{{ formatConversationTime(conv.lastMessageAt) }}</span>
       </div>
       <div class="ci-bottom">
-        <span class="ci-preview">{{ conv.lastMessagePreview || '' }}</span>
+        <span class="ci-preview">
+          <span v-if="conv.draft" class="ci-draft">[草稿]</span>
+          {{ conv.draft || conv.lastMessagePreview || '' }}
+        </span>
         <Badge v-if="conv.unreadCount > 0" :count="conv.unreadCount" :max="99" :size="18" />
       </div>
     </div>
@@ -94,4 +97,5 @@ const displayName = computed(() => {
   font-size: 12px; color: var(--text-muted, #999);
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1;
 }
+.ci-draft { color: #e74c3c; font-size: 11px; margin-right: 2px; }
 </style>

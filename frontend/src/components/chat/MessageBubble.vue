@@ -1,5 +1,5 @@
 <template>
-  <div class="mb-root" :class="[msgTypeClass, { self: isSelf, optimistic: msg._optimistic }]">
+  <div class="mb-root" :class="[msgTypeClass, { self: isSelf, optimistic: msg._optimistic, mentioned: isMentioned }]">
     <!-- 引用消息 -->
     <div v-if="msg.replyToId" class="mb-reply">
       <span class="mb-reply-preview">{{ msg.replyToPreview || '[消息]' }}</span>
@@ -45,8 +45,10 @@
 import { computed } from 'vue'
 
 import { useChatStore } from '../../stores/chat'
+import { useAuthStore } from '../../stores/auth'
 import { useUiStore } from '../../stores/ui'
 const chat = useChatStore()
+const authStore = useAuthStore()
 const ui = useUiStore()
 
 const props = defineProps({
@@ -57,6 +59,13 @@ const props = defineProps({
 const msgTypeClass = computed(() => {
   const map = { 1: 'type-text', 2: 'type-image', 3: 'type-file', 4: 'type-emoji', 6: 'type-card' }
   return map[props.msg.msgType] || 'type-text'
+})
+const isMentioned = computed(() => {
+  const ids = props.msg.mentionedUserIds
+  if (!ids || !ids.length) return false
+  const myId = authStore.user?.id
+  if (!myId) return false
+  return ids.some(id => Number(id) === Number(myId))
 })
 const cardData = computed(() => {
   if (props.msg.msgType != 6 || !props.msg.content) return null
@@ -88,6 +97,7 @@ function openCard() {
   background: transparent !important;
 }
 .mb-root.optimistic .mb-text { opacity: 0.7; }
+.mb-root.mentioned .mb-text { background: rgba(247,147,30,0.2) !important; border-left: 3px solid #f7931e; }
 .mb-reply {
   padding: 6px 10px; margin-bottom: 2px; font-size: 12px; color: var(--text-muted, #999);
   background: rgba(0,0,0,0.2); border-left: 3px solid var(--accent, #f7931e);

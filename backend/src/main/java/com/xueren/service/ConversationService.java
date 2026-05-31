@@ -194,7 +194,14 @@ public class ConversationService {
         if (message.getIsRecalled() != null && message.getIsRecalled() == 1) {
             return "[消息已撤回]";
         }
-        return switch (message.getMsgType()) {
+        String sender = "";
+        if (message.getChatType() != null && message.getChatType() == Constants.CHAT_GROUP) {
+            User fromUser = userRepository.findById(message.getFromUserId()).orElse(null);
+            if (fromUser != null) {
+                sender = (fromUser.getNickname() != null ? fromUser.getNickname() : fromUser.getUsername()) + ": ";
+            }
+        }
+        String content = switch (message.getMsgType()) {
             case Constants.MSG_IMAGE -> "[图片]";
             case Constants.MSG_FILE -> "[文件]";
             case Constants.MSG_CONTACT_CARD -> "[名片]";
@@ -202,5 +209,6 @@ public class ConversationService {
                     ? message.getContent().substring(0, 200)
                     : message.getContent();
         };
+        return (sender + content).length() > 200 ? (sender + content).substring(0, 200) : sender + content;
     }
 }

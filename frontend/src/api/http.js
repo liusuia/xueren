@@ -29,12 +29,20 @@ http.interceptors.response.use(
     return body.data
   },
   (err) => {
-    if (err.response && err.response.data) {
+    if (err.response) {
+      const status = err.response.status
+      // 401/403 自动跳登录
+      if (status === 401 || status === 403) {
+        const auth = useAuthStore()
+        if (auth.token) {
+          auth.logout()
+        }
+      }
       const body = err.response.data
-      const msg = body.message || err.message || '请求失败'
+      const msg = body?.message || err.message || '请求失败'
       return Promise.reject(new Error(msg))
     }
-    return Promise.reject(new Error(err.message || '网络异常'))
+    return Promise.reject(new Error('网络异常，请检查连接'))
   }
 )
 

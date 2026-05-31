@@ -134,6 +134,15 @@ public class UserService {
     }
 
     @Transactional
+    public void changePassword(Long userId, String oldPwd, String newPwd) {
+        if (newPwd == null || newPwd.length() < 6) throw new BusinessException("新密码至少6位");
+        User user = requireUser(userId);
+        if (!passwordEncoder.matches(oldPwd, user.getPassword())) throw new BusinessException("原密码错误");
+        user.setPassword(passwordEncoder.encode(newPwd));
+        userRepository.save(user);
+    }
+
+    @Transactional
     public void deleteAccount(Long userId) {
         // 清理关联数据
         jdbc.update("DELETE FROM friend WHERE user_id=? OR friend_id=?", userId, userId);

@@ -41,17 +41,20 @@
 </template>
 
 <script setup>
-import { ref, computed, nextTick, onUnmounted } from 'vue'
+import { ref, computed, nextTick, onUnmounted, watch } from 'vue'
 import EmojiPicker from './EmojiPicker.vue'
 import Avatar from '../common/Avatar.vue'
 import { useAuthStore } from '../../stores/auth'
 import { useChatStore } from '../../stores/chat'
+import { useConversationStore } from '../../stores/conversations'
 import { sendTyping } from '../../api/ws'
 import { fileApi } from '../../api/endpoints'
+import http from '../../api/http'
 import { GROUP_ROLE } from '../../utils/constants'
 
 const auth = useAuthStore()
 const chat = useChatStore()
+const convStore = useConversationStore()
 const props = defineProps({
   isGroup: { type: Boolean, default: false },
   members: { type: Array, default: () => [] }
@@ -64,6 +67,37 @@ const showMention = ref(false)
 const inputRef = ref(null)
 const imageInput = ref(null)
 const fileInput = ref(null)
+
+// 草稿：恢复 + 自动保存
+let draftTimer = null
+const saveDraft = (targetType, targetId, content) => {
+  http.put('/conversations/draft', { draft: content || '' }, {
+    params: { targetType, targetId }
+  }).catch(() => {})
+}
+watch(text, (val) => {
+  if (!chat.currentConv) return
+  const cv = chat.currentConv
+  cv.draft = val
+  const item = convStore.list.find(c => c.targetType === cv.targetType && c.targetId === cv.targetId)
+  if (item) item.draft = val
+  clearTimeout(draftTimer)
+  draftTimer = setTimeout(() => saveDraft(cv.targetType, cv.targetId, val), 1000)
+})
+let lastConv = null
+watch(() => chat.currentConv?.targetId, (newId, oldId) => {
+  // 切出前立即保存上一个会话的草稿
+  if (lastConv) {
+    clearTimeout(draftTimer)
+    saveDraft(lastConv.targetType, lastConv.targetId, lastConv.text)
+  }
+  lastConv = chat.currentConv ? { targetType: chat.currentConv.targetType, targetId: chat.currentConv.targetId, text: '' } : null
+  if (newId) {
+    text.value = chat.currentConv?.draft || ''
+    lastConv.text = text.value
+    nextTick(() => inputRef.value?.focus())
+  }
+}, { immediate: true })
 const placeholder = props.isGroup ? '输入消息，@ 提及成员' : '输入消息，Enter发送'
 
 defineExpose({ focus: () => nextTick(() => inputRef.value?.focus()) })
@@ -163,6 +197,15 @@ function onSend() {
   emit('sendText', content, currentMentions.value.length ? currentMentions.value : [])
   text.value = ''
   currentMentions.value = []
+  // 立即清除草稿
+  if (chat.currentConv) {
+    const cv = chat.currentConv
+    cv.draft = ''
+    const item = convStore.list.find(c => c.targetType === cv.targetType && c.targetId === cv.targetId)
+    if (item) item.draft = ''
+    clearTimeout(draftTimer)
+    saveDraft(cv.targetType, cv.targetId, '')
+  }
   nextTick(() => { if (inputRef.value) inputRef.value.style.height = 'auto' })
 }
 
