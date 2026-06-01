@@ -109,7 +109,7 @@ function openCard() {
 }
 .mb-reply-preview { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block; }
 .mb-img {
-  max-width: 240px; max-height: 320px; border-radius: 8px;
+  max-width: 240px; max-height: 240px; border-radius: 8px;
   cursor: pointer; display: block; object-fit: cover;
 }
 .mb-sticker {

@@ -171,6 +171,7 @@ async function loadOlder() {
 
 async function onSendText(content, mentions) {
   await chat.sendMessage({ content, msgType: 1, mentionedUserIds: mentions?.length ? mentions : undefined })
+  nextTick(() => msgListRef.value?.scrollToBottom())
 }
 
 async function onSendImage(file) {
@@ -238,7 +239,7 @@ async function onDrop(e) {
 .cp-header {
   display: flex; align-items: center; justify-content: space-between;
   padding: 12px 20px; border-bottom: 1px solid var(--border, #2e3038);
-  flex-shrink: 0;
+  flex-shrink: 0; position: relative; z-index: 1;
 }
 .cp-h-left { display: flex; align-items: center; gap: 10px; }
 .cp-h-info { min-width: 0; }

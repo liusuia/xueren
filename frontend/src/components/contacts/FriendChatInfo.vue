@@ -29,6 +29,17 @@
               <input class="fci-inp" :value="friendRemark" placeholder="设置备注" @blur="onSaveRemark" @keydown.enter="$event.target.blur()" />
             </div>
 
+            <div class="fci-card" v-if="friendInfo.region || friendCreatedAt">
+              <div class="fci-info-row" v-if="friendInfo.region">
+                <span class="fci-info-label">地区</span>
+                <span class="fci-info-val">{{ friendInfo.region }}</span>
+              </div>
+              <div class="fci-info-row" v-if="friendCreatedAt">
+                <span class="fci-info-label">添加时间</span>
+                <span class="fci-info-val">{{ friendCreatedAt }}</span>
+              </div>
+            </div>
+
             <div class="fci-card">
               <div class="fci-ops">
                 <button class="fci-op" @click="onClearHistory"><span>清空聊天记录</span><svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" opacity="0.3"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6z"/></svg></button>
@@ -72,6 +83,10 @@ const blocked = computed(() => contactStore.isBlocked(props.userId))
 const friendRemark = computed(() => {
   const f = contactStore.friends.find(x => x.userId === props.userId)
   return f?.remark || ''
+})
+const friendCreatedAt = computed(() => {
+  const f = contactStore.friends.find(x => x.userId === props.userId)
+  return f?.createdAt ? formatFullTime(f.createdAt) : ''
 })
 
 async function onSaveRemark(e) {
@@ -139,6 +154,9 @@ function onTopConv() {
 .fci-op:hover { opacity: 0.8; }
 .fci-sw { font-size: 11px; color: var(--text-muted, #999); }
 .fci-sw.on { color: var(--accent, #f7931e); }
+.fci-info-row { display: flex; justify-content: space-between; padding: 6px 0; }
+.fci-info-label { font-size: 12px; color: var(--text-muted, #999); }
+.fci-info-val { font-size: 12px; color: var(--text-secondary, #bbb); }
 
 .fci-footer { margin-top: 12px; padding-bottom: 20px; }
 .fci-btn { width: 100%; padding: 10px; border: none; border-radius: 6px; font-size: 13px; cursor: pointer; font-weight: 500; }

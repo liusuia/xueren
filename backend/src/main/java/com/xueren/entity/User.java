@@ -40,6 +40,9 @@ public class User {
     @Column(name = "birthday", length = 10)
     private String birthday;
 
+    @Column(length = 50)
+    private String region;
+
     @Column(name = "last_online_at")
     private LocalDateTime lastOnlineAt;
 

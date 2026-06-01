@@ -270,7 +270,7 @@ function onScroll() {
   }
 }
 function onLoadOlderDone() { loadingOlder = false }
-defineExpose({ onLoadOlderDone })
+defineExpose({ onLoadOlderDone, scrollToBottom })
 
 watch(() => props.messages.length, () => {
   if (rootRef.value) {
