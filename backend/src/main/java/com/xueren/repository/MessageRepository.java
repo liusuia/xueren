@@ -56,6 +56,22 @@ public interface MessageRepository extends JpaRepository<Message, Long> {
                                   @Param("keyword") String keyword,
                                   Pageable pageable);
 
+    @Query(value = """
+            SELECT m.* FROM message m
+            WHERE MATCH(m.content) AGAINST(:keyword IN BOOLEAN MODE)
+              AND (
+                (m.chat_type = 1 AND (m.from_user_id = :userId OR m.to_user_id = :userId))
+                OR
+                (m.chat_type = 2 AND m.group_id IN (
+                  SELECT gm.group_id FROM group_member gm WHERE gm.user_id = :userId
+                ))
+              )
+            ORDER BY m.created_at DESC
+            LIMIT 50
+            """, nativeQuery = true)
+    List<Message> fulltextSearch(@Param("userId") Long userId,
+                                 @Param("keyword") String keyword);
+
     // 清空单聊聊天记录
     @Modifying
     @Transactional

@@ -57,6 +57,11 @@ public class MessageController {
         return ApiResponse.ok(messageService.searchConversationsByContent(AuthHolder.currentUserId(), keyword));
     }
 
+    @GetMapping("/search-content")
+    public ApiResponse<List<MessageVO>> searchContent(@RequestParam String keyword) {
+        return ApiResponse.ok(messageService.searchMessages(AuthHolder.currentUserId(), keyword));
+    }
+
     @DeleteMapping("/clear")
     public ApiResponse<Void> clearHistory(@RequestParam Integer chatType, @RequestParam Long targetId) {
         messageService.clearChatHistory(AuthHolder.currentUserId(), chatType, targetId);

@@ -352,6 +352,18 @@ public class MessageService {
                 .build();
     }
 
+    public List<MessageVO> searchMessages(Long userId, String keyword) {
+        if (keyword == null || keyword.isBlank()) return List.of();
+        try {
+            return messageRepository.fulltextSearch(userId, keyword).stream()
+                    .map(this::toVO).toList();
+        } catch (Exception e) {
+            // FULLTEXT 索引不存在时回退到 LIKE
+            return messageRepository.searchByContent(userId, keyword, PageRequest.of(0, 30)).stream()
+                    .map(this::toVO).toList();
+        }
+    }
+
     public List<Long> searchConversationsByContent(Long userId, String keyword) {
         if (keyword == null || keyword.isBlank()) {
             return List.of();

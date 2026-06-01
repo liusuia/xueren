@@ -125,20 +125,14 @@ function onSearch() {
       const myIds = new Set(groupStore.list.map(g => g.id))
       results.groups = ((await groupStore.searchGroups(q)) || []).filter(g => myIds.has(g.id))
     } catch { results.groups = [] }
-    // 聊天记录：遍历会话拉消息过滤
+    // 聊天记录：服务端全文搜索
     let msgMatches = []
     try {
-      const convs = convStore.list.slice(0, 8)
-      const matchPromises = convs.map(async c => {
-        try {
-          const msgs = c.targetType===1 ? await messageApi.singleHistory(c.targetId, 50) : await messageApi.groupHistory(c.targetId, 50)
-          return msgs.filter(m => !m.isRecalled && (m.content||'').toLowerCase().includes(ql)).map(m => ({
-            ...m,
-            _conv: { targetType:c.targetType, targetId:c.targetId, targetName:c.targetName, targetAvatar:c.targetAvatar }
-          }))
-        } catch { return [] }
-      })
-      msgMatches = (await Promise.all(matchPromises)).flat().slice(0, 20)
+      const msgs = await messageApi.searchContent(q) || []
+      msgMatches = msgs.map(m => ({
+        ...m,
+        _conv: { targetType:m.chatType, targetId:m.chatType===1 ? m.fromUserId : m.groupId, targetName:'', targetAvatar:'' }
+      }))
     } catch {}
     results.messages = msgMatches
   }, 250)

@@ -72,6 +72,7 @@ export const messageApi = {
   recall: (messageId) => http.post(`/messages/${messageId}/recall`),
   markRead: (messageId) => http.post(`/messages/${messageId}/read`),
   search: (keyword) => http.get('/messages/search', { params: { keyword } }),
+  searchContent: (keyword) => http.get('/messages/search-content', { params: { keyword } }),
   clear: (chatType, targetId) => http.delete('/messages/clear', { params: { chatType, targetId } }),
   hide: (messageId) => http.post(`/messages/${messageId}/hide`),
   edit: (messageId, content) => http.put(`/messages/${messageId}`, { content })

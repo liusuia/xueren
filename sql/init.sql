@@ -171,3 +171,6 @@ CREATE TABLE IF NOT EXISTS emoji (
 -- ALTER TABLE conversation ADD CONSTRAINT fk_conv_user FOREIGN KEY (user_id) REFERENCES user(id);
 -- ALTER TABLE message_hidden ADD CONSTRAINT fk_mh_user FOREIGN KEY (user_id) REFERENCES user(id);
 -- ALTER TABLE message_hidden ADD CONSTRAINT fk_mh_msg FOREIGN KEY (message_id) REFERENCES message(id);
+
+-- 全文搜索索引（需 MySQL 5.7+ InnoDB）
+-- ALTER TABLE message ADD FULLTEXT INDEX ft_message_content (content);
