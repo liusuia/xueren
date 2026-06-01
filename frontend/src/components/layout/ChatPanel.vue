@@ -135,8 +135,9 @@ function onPreview(msg) {
   // 仅预览普通图片(msgType 2)，不包含表情包(msgType 7)
   const all = chat.messages.filter(m => m.msgType === 2)
   previewImages.value = all
-  previewIndex.value = all.findIndex(m => m.id === msg.id)
-  if (previewIndex.value < 0) previewIndex.value = 0
+  // 乐观消息用 temp_ 前缀，真实消息用数字 id，都尝试匹配
+  const idx = all.findIndex(m => m.id === msg.id || (msg._optimistic && m.content === msg.content))
+  previewIndex.value = idx >= 0 ? idx : 0
   previewVisible.value = true
 }
 
