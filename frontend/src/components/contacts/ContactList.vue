@@ -20,6 +20,10 @@
         <span class="ctl-act-icon" style="background:#9B59B6"><svg viewBox="0 0 24 24" width="16" height="16" fill="#fff"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg></span>
         <span>加入群聊</span>
       </button>
+      <button class="ctl-act-btn" @click="emit('showFavorites')">
+        <span class="ctl-act-icon" style="background:#f1c40f"><svg viewBox="0 0 24 24" width="16" height="16" fill="#fff"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg></span>
+        <span>收藏</span>
+      </button>
       <button class="ctl-act-btn" @click="emit('showBlockedList')">
         <span class="ctl-act-icon" style="background:#e74c3c"><svg viewBox="0 0 24 24" width="16" height="16" fill="#fff"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg></span>
         <span>黑名单</span>
@@ -49,16 +53,6 @@
           <span class="cti-name">{{ f.remark || f.nickname || f.username }}</span>
         </div>
       </div>
-    </div>
-
-    <!-- 收藏 -->
-    <div class="ctl-section">
-      <button class="ctl-act-btn" style="width:100%;justify-content:flex-start;padding:8px 16px" @click="emit('showFavorites')">
-        <span class="ctl-act-icon" style="background:#f1c40f;width:32px;height:32px;border-radius:6px;display:flex;align-items:center;justify-content:center;flex-shrink:0">
-          <svg viewBox="0 0 24 24" width="16" height="16" fill="#fff"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
-        </span>
-        <span>收藏的消息</span>
-      </button>
     </div>
 
     <EmptyState v-if="!groupStore.list.length && !contactStore.friendSections.length" title="暂无好友和群聊" desc="去添加好友或创建群聊吧" />
