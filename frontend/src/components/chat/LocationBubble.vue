@@ -1,8 +1,9 @@
 <template>
   <div class="lb-root" :class="{ self: isSelf }">
-    <div class="lb-map" v-if="data.map">
-      <img :src="data.map" class="lb-map-img" alt="位置" />
-      <div class="lb-pin">📍</div>
+    <div class="lb-map">
+      <img v-if="data.map" :src="data.map" class="lb-map-img" @error="imgErr=true" alt="位置" :style="{display:imgErr?'none':''}" />
+      <div v-if="!data.map || imgErr" class="lb-map-fb">📍</div>
+      <div v-if="data.map && !imgErr" class="lb-pin-dot"></div>
     </div>
     <div class="lb-info">
       <div class="lb-title">位置</div>
@@ -13,8 +14,9 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { ref, computed } from 'vue'
 const props = defineProps({ msg: Object, isSelf: Boolean })
+const imgErr = ref(false)
 const data = computed(() => {
   try { return JSON.parse(props.msg.content || '{}') } catch { return {} }
 })
@@ -27,9 +29,10 @@ const data = computed(() => {
   cursor: pointer;
 }
 .lb-root.self { background: #95eb6b; }
-.lb-map { position: relative; height: 140px; overflow: hidden; background: #e8e8e8; }
+.lb-map { position: relative; height: 140px; overflow: hidden; background: linear-gradient(135deg, #a8d8ea, #c9f0d9); display: flex; align-items: center; justify-content: center; }
 .lb-map-img { width: 100%; height: 100%; object-fit: cover; }
-.lb-pin { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 32px; }
+.lb-map-fb { font-size: 48px; opacity: 0.6; }
+.lb-pin-dot { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 12px; height: 12px; border-radius: 50%; background: #e74c3c; border: 2px solid #fff; box-shadow: 0 2px 6px rgba(0,0,0,0.3); }
 .lb-info { padding: 10px 12px 4px; }
 .lb-title { font-size: 14px; font-weight: 600; }
 .lb-coords { font-size: 11px; color: #888; margin-top: 2px; }
