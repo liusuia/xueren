@@ -234,9 +234,10 @@ public class MessageService {
                 read.setUserId(userId);
                 messageReadRepository.save(read);
             }
-            conversationService.markRead(userId, Constants.TARGET_USER,
-                    message.getFromUserId().equals(userId) ? message.getToUserId() : message.getFromUserId(),
-                    messageId);
+            Long peerId = message.getFromUserId().equals(userId) ? message.getToUserId() : message.getFromUserId();
+            conversationService.markRead(userId, Constants.TARGET_USER, peerId, messageId);
+            // 推送已读回执给发送者
+            messagePushService.pushReadReceipt(messageId, message.getFromUserId());
         } else {
             // 群聊：仅更新 last_read_message_id，不逐条记录（避免 message_read 表爆炸）
             conversationService.markRead(userId, Constants.TARGET_GROUP, message.getGroupId(), messageId);

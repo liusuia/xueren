@@ -5,6 +5,7 @@ import { CHAT_TYPE } from '../utils/constants'
 import { useAuthStore } from './auth'
 
 export const useChatStore = defineStore('chat', () => {
+  const authStore = useAuthStore()
   const currentConv = ref(null)
   const messages = ref([])
   const loading = ref(false)
@@ -217,6 +218,15 @@ export const useChatStore = defineStore('chat', () => {
     if (idx !== -1) messages.value.splice(idx, 1)
   }
 
+  // 已读回执：标记 <= messageId 的所有自己发的消息为已读
+  function markReadReceipt(messageId) {
+    for (const m of messages.value) {
+      if (m.fromUserId === authStore.user?.id && m.id <= messageId) {
+        m._readByPeer = true
+      }
+    }
+  }
+
   // WebSocket 推送新消息
   function appendFromPush(message) {
     if (!currentConv.value) return false
@@ -264,6 +274,6 @@ export const useChatStore = defineStore('chat', () => {
     openChat, closeChat, fetchMessages, loadOlderMessages, sendMessage, retryMessage, sendContactCard, recallMessage, clearHistory,
     setReplyTo, clearReply, setTypingUser, editMsgId, editContent, startEdit, cancelEdit, submitEdit,
     multiSelect, selectedIds, toggleMultiSelect, toggleSelect, deleteSelected,
-    removeMessageLocal, appendFromPush, markRecalledFromPush, sortedMessages
+    removeMessageLocal, appendFromPush, markRecalledFromPush, markReadReceipt, sortedMessages
   }
 })

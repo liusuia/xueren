@@ -181,6 +181,9 @@ const unsubWs = addWsListener((packet) => {
       }
     }
   }
+  if (packet.type === 'READ_RECEIPT') {
+    chat.markReadReceipt(packet.data?.messageId)
+  }
 })
 
 // 名片点击 → 打开用户资料

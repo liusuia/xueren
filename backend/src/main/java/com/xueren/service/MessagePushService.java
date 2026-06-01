@@ -48,6 +48,14 @@ public class MessagePushService {
         pushToParticipants(message, "MESSAGE_RECALLED");
     }
 
+    public void pushReadReceipt(Long messageId, Long senderId) {
+        WsPacket packet = new WsPacket();
+        packet.setType("READ_RECEIPT");
+        packet.setData(java.util.Map.of("messageId", messageId, "readerId", senderId));
+        String json = toJson(packet);
+        if (json != null) sendToUser(senderId, json);
+    }
+
     private void pushToParticipants(MessageVO message, String type) {
         WsPacket packet = new WsPacket();
         packet.setType(type);

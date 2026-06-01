@@ -15,6 +15,7 @@
         <div v-if="!isSelf && isGroup" class="mi-sender">{{ senderName }}</div>
         <div class="mi-row" :class="{ right: isSelf }">
           <span v-if="msg._failed" class="mi-fail" title="点击重发" @click.stop="retrySend(msg)">!</span>
+          <span v-else-if="isSelf && msg._readByPeer" class="mi-read">已读</span>
           <MessageBubble :msg="msg" :isSelf="isSelf" />
         </div>
       </div>
@@ -96,5 +97,9 @@ const senderName = computed(() => {
   color: #fff; font-size: 11px; font-weight: 700;
   display: flex; align-items: center; justify-content: center;
   flex-shrink: 0;
+}
+.mi-read {
+  font-size: 10px; color: var(--text-muted, #999);
+  flex-shrink: 0; margin-right: 2px;
 }
 </style>
