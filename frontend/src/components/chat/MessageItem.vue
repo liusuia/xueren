@@ -16,7 +16,7 @@
         <div class="mi-row" :class="{ right: isSelf }">
           <span v-if="msg._failed" class="mi-fail" title="点击重发" @click.stop="retrySend(msg)">!</span>
           <span v-else-if="isSelf && msg._readByPeer" class="mi-read">已读</span>
-          <MessageBubble :msg="msg" :isSelf="isSelf" />
+          <MessageBubble :msg="msg" :isSelf="isSelf" @preview="$emit('preview', $event)" />
         </div>
       </div>
 

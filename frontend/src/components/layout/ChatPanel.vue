@@ -41,7 +41,9 @@
       :isGroup="chat.currentConv.targetType === 2"
       @loadOlder="loadOlder"
       @userClick="(uid) => $emit('userInfo', uid)"
+      @preview="onPreview"
     />
+    <ImagePreview :visible="previewVisible" :images="previewImages" :index="previewIndex" @close="previewVisible = false" />
 
     <!-- 回复指示条 -->
     <div v-if="chat.replyTo" class="cp-reply-bar">
@@ -81,6 +83,7 @@ import Avatar from '../common/Avatar.vue'
 import OnlineDot from '../common/OnlineDot.vue'
 import MessageList from '../chat/MessageList.vue'
 import InputBar from '../chat/InputBar.vue'
+import ImagePreview from '../chat/ImagePreview.vue'
 import { useChatStore } from '../../stores/chat'
 import { useGroupStore } from '../../stores/groups'
 import { useContactStore } from '../../stores/contacts'
@@ -125,6 +128,15 @@ function onAvatarClick() {
 }
 
 const emit = defineEmits(['close', 'groupInfo', 'userInfo', 'friendInfo'])
+const previewVisible = ref(false)
+const previewImages = ref([])
+const previewIndex = ref(0)
+function onPreview(msg) {
+  const all = chat.messages.filter(m => m.msgType === 2 || m.msgType === 7)
+  previewImages.value = all
+  previewIndex.value = all.findIndex(m => m.id === msg.id)
+  previewVisible.value = true
+}
 
 async function loadOlder() {
   await chat.loadOlderMessages()
