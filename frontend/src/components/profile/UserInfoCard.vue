@@ -22,6 +22,10 @@
           <div class="uic-uid">@{{ user.username }}</div>
           <OnlineDot :active="!!(user.isOnline ?? user.online)" :s="8" />
           <span class="uic-status">{{ (user.isOnline ?? user.online) ? '在线' : '离线' }}</span>
+          <div class="uic-info" v-if="user.region || friendCreatedAt">
+            <div class="uic-info-row" v-if="user.region"><span class="uic-info-label">地区</span><span class="uic-info-val">{{ user.region }}</span></div>
+            <div class="uic-info-row" v-if="friendCreatedAt"><span class="uic-info-label">添加时间</span><span class="uic-info-val">{{ friendCreatedAt }}</span></div>
+          </div>
         </div>
         <button class="uic-btn primary" @click="onChat">发消息</button>
         <button class="uic-btn add" @click="showPicker = true">发送名片</button>
@@ -32,7 +36,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import Avatar from '../common/Avatar.vue'
 import OnlineDot from '../common/OnlineDot.vue'
 import { userApi, friendApi } from '../../api/endpoints'
@@ -40,6 +44,7 @@ import { useContactStore } from '../../stores/contacts'
 import { useConversationStore } from '../../stores/conversations'
 import { useChatStore } from '../../stores/chat'
 import { useNotification } from '../../composables/useNotification'
+import { formatFullTime } from '../../utils/format'
 
 const props = defineProps({ userId: { type: Number, required: true } })
 const emit = defineEmits(['close', 'chat'])
@@ -50,6 +55,11 @@ const contactStore = useContactStore()
 const convStore = useConversationStore()
 const chatStore = useChatStore()
 const { success } = useNotification()
+
+const friendCreatedAt = computed(() => {
+  const f = contactStore.friends.find(x => x.userId === props.userId)
+  return f?.createdAt ? formatFullTime(f.createdAt) : ''
+})
 
 onMounted(async () => {
   try { user.value = await userApi.getUser(props.userId) } catch { user.value = {} }
@@ -82,6 +92,10 @@ async function doSend(conv) {
 .uic-name { font-size: 18px; font-weight: 600; color: var(--text-primary, #e8e8ea); }
 .uic-uid { font-size: 13px; color: var(--text-muted, #999); }
 .uic-status { font-size: 12px; color: var(--text-muted, #999); }
+.uic-info { width: 100%; margin-top: 4px; padding: 8px 0; border-top: 1px solid var(--border, #3a3c44); }
+.uic-info-row { display: flex; justify-content: space-between; padding: 3px 0; }
+.uic-info-label { font-size: 11px; color: var(--text-muted, #999); }
+.uic-info-val { font-size: 11px; color: var(--text-secondary, #bbb); }
 .uic-btn { width: 100%; padding: 8px; border: none; border-radius: 6px; font-size: 13px; cursor: pointer; margin-bottom: 6px; }
 .uic-btn.primary { background: var(--accent, #f7931e); color: #fff; font-weight: 600; }
 .uic-btn.add { background: var(--bg-input, #2e3038); color: var(--text-secondary, #bbb); }

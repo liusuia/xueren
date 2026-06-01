@@ -223,7 +223,7 @@ async function onDrop(e) {
 .chat-panel {
   flex: 1; display: flex; flex-direction: column; height: 100%;
   background: var(--chat-bg, #1a1d23); min-width: 0;
-  position: relative;
+  position: relative; overflow: hidden;
 }
 .cp-bg-blur {
   position: absolute; inset: 0; z-index: 0;
