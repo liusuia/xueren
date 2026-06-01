@@ -21,7 +21,7 @@
       :src="msg.content || msg.fileUrl"
       class="mb-img"
       :class="{ 'mb-sticker': msg.msgType === 7 }"
-      @click.stop="$emit('preview', msg)"
+      @click.stop="msg.msgType === 2 && $emit('preview', msg)"
       loading="lazy"
       alt="图片"
     />
