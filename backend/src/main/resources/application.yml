@@ -9,6 +9,9 @@ server:
     accept-count: 200
 
 spring:
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
   application:
     name: qingyu-backend
   datasource:
