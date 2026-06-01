@@ -1,5 +1,5 @@
 <template>
-  <div class="chat-panel" v-if="chat.currentConv" :style="chatBg ? { backgroundImage: 'url(' + chatBg + ')', backgroundSize: 'cover', backgroundPosition: 'center', backgroundAttachment: 'fixed' } : {}" @dragover.prevent @drop.prevent="onDrop">
+  <div class="chat-panel" v-if="chat.currentConv" :class="{ 'has-bg': chatBg }" :style="chatBg ? { '--bg-image': 'url(' + chatBg + ')' } : {}" @dragover.prevent @drop.prevent="onDrop">
     <!-- 头部 -->
     <div class="cp-header">
       <!-- 移动端返回按钮 -->
@@ -222,6 +222,16 @@ async function onDrop(e) {
   background: var(--chat-bg, #1a1d23); min-width: 0;
   position: relative; overflow: hidden;
 }
+/* 聊天背景：::before 模糊填充边缘，background 原图居中不裁剪 */
+.chat-panel.has-bg {
+  background: var(--bg-image) center / contain no-repeat;
+}
+.chat-panel.has-bg::before {
+  content: ''; position: absolute; inset: 0; z-index: 0;
+  background: var(--bg-image) center / cover;
+  filter: blur(20px); opacity: 0.5;
+}
+.chat-panel.has-bg > * { position: relative; z-index: 1; }
 .cp-header {
   display: flex; align-items: center; justify-content: space-between;
   padding: 12px 20px; border-bottom: 1px solid var(--border, #2e3038);
