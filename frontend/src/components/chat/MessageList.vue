@@ -1,31 +1,21 @@
 <template>
-  <div class="ml-root" ref="rootRef">
+  <div class="ml-root" ref="rootRef" @scroll="onScroll">
     <LoadingSpinner :visible="loading" />
-    <DynamicScroller
-      v-if="displayItems.length"
-      ref="scrollerRef"
-      :items="displayItems"
-      :min-item-size="40"
-      key-field="key"
-      class="ml-scroller"
-      @scroll="onVirtualScroll"
-    >
-      <template #default="{ item, index, active }">
-        <DynamicScrollerItem :item="item" :active="active" :size-dependencies="[item.content]">
-          <div v-if="item.type === 'date'" class="ml-date-sep">
-            <span>{{ item.text }}</span>
+    <div class="ml-inner">
+      <template v-for="(msg, idx) in messages" :key="msg.id">
+        <div v-if="showDateSep(idx)" class="ml-date-sep">
+          <span>{{ formatFullTime(msg.createdAt) }}</span>
+        </div>
+        <div :id="'msg-' + msg.id" @contextmenu.prevent="onMsgCtx($event, msg)" :class="{ 'ml-msg-sel': chatStore.selectedIds.has(msg.id) }" @click="chatStore.multiSelect && chatStore.toggleSelect(msg.id)">
+          <div v-if="chatStore.multiSelect" class="ml-check">
+            <svg v-if="chatStore.selectedIds.has(msg.id)" viewBox="0 0 24 24" width="18" height="18" fill="#07C160"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+            <svg v-else viewBox="0 0 24 24" width="18" height="18" fill="currentColor" opacity="0.3"><path d="M19 5v14H5V5h14m0-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"/></svg>
           </div>
-          <div v-else :id="'msg-' + item.id" @contextmenu.prevent="onMsgCtx($event, item)" :class="{ 'ml-msg-sel': chatStore.selectedIds.has(item.id) }" @click="chatStore.multiSelect && chatStore.toggleSelect(item.id)">
-            <div v-if="chatStore.multiSelect" class="ml-check">
-              <svg v-if="chatStore.selectedIds.has(item.id)" viewBox="0 0 24 24" width="18" height="18" fill="#07C160"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
-              <svg v-else viewBox="0 0 24 24" width="18" height="18" fill="currentColor" opacity="0.3"><path d="M19 5v14H5V5h14m0-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"/></svg>
-            </div>
-            <MessageItem :msg="item" :isGroup="isGroup" @userClick="$emit('userClick', $event)" />
-          </div>
-        </DynamicScrollerItem>
+          <MessageItem :msg="msg" :isGroup="isGroup" @userClick="$emit('userClick', $event)" />
+        </div>
       </template>
-    </DynamicScroller>
-    <div v-else ref="bottomRef" class="ml-empty-list"></div>
+      <div ref="bottomRef"></div>
+    </div>
     <!-- 多选底栏 -->
     <div v-if="chatStore.multiSelect" class="ml-ms-bar">
       <button class="ml-ms-cancel" @click="chatStore.toggleMultiSelect()">取消</button>
@@ -65,9 +55,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, nextTick, onMounted } from 'vue'
-import { DynamicScroller, DynamicScrollerItem } from 'vue-virtual-scroller'
-import 'vue-virtual-scroller/dist/vue-virtual-scroller.css'
+import { ref, watch, nextTick, onMounted } from 'vue'
 import MessageItem from './MessageItem.vue'
 import LoadingSpinner from '../common/LoadingSpinner.vue'
 import ContextMenu from '../common/ContextMenu.vue'
@@ -93,21 +81,8 @@ const props = defineProps({
 const emit = defineEmits(['loadOlder', 'userClick'])
 
 const rootRef = ref(null)
-const scrollerRef = ref(null)
 const bottomRef = ref(null)
 const showScrollBtn = ref(false)
-
-// 将消息和日期分隔符合并为平铺列表
-const displayItems = computed(() => {
-  const items = []
-  props.messages.forEach((msg, idx) => {
-    if (idx === 0 || new Date(msg.createdAt).toDateString() !== new Date(props.messages[idx-1].createdAt).toDateString()) {
-      items.push({ type: 'date', key: 'd-' + msg.id, text: formatFullTime(msg.createdAt) })
-    }
-    items.push({ ...msg, key: 'm-' + msg.id, type: 'msg' })
-  })
-  return items
-})
 
 // 消息右键菜单
 const ctxVisible = ref(false)
@@ -266,13 +241,25 @@ async function onMsgCtxAction(item) {
   }
 }
 
+function showDateSep(idx) {
+  if (idx === 0) return true
+  const prev = new Date(props.messages[idx - 1].createdAt)
+  const cur = new Date(props.messages[idx].createdAt)
+  return prev.toDateString() !== cur.toDateString()
+}
+
+function scrollToBottom() {
+  nextTick(() => {
+    bottomRef.value?.scrollIntoView({ behavior: 'smooth' })
+  })
+}
+
 let loadingOlder = false
-function onVirtualScroll() {
-  const scroller = scrollerRef.value
-  if (!scroller) return
-  const el = scroller.$el
-  showScrollBtn.value = el.scrollHeight - el.scrollTop - el.clientHeight > 150
-  if (el.scrollTop <= 50 && !loadingOlder && props.messages.length > 0) {
+function onScroll() {
+  if (!rootRef.value) return
+  const { scrollTop, scrollHeight, clientHeight } = rootRef.value
+  showScrollBtn.value = scrollHeight - scrollTop - clientHeight > 150
+  if (scrollTop <= 50 && !loadingOlder && props.messages.length > 0) {
     loadingOlder = true
     emit('loadOlder')
   }
@@ -280,14 +267,10 @@ function onVirtualScroll() {
 function onLoadOlderDone() { loadingOlder = false }
 defineExpose({ onLoadOlderDone })
 
-function scrollToBottom() {
-  nextTick(() => scrollerRef.value?.scrollToBottom())
-}
-
 watch(() => props.messages.length, () => {
-  if (scrollerRef.value) {
-    const el = scrollerRef.value.$el
-    if (el.scrollHeight > 0 && el.scrollHeight - el.scrollTop - el.clientHeight < 200) {
+  if (rootRef.value) {
+    const { scrollTop, scrollHeight, clientHeight } = rootRef.value
+    if (scrollHeight > 0 && scrollHeight - scrollTop - clientHeight < 200) {
       scrollToBottom()
     }
   }
@@ -297,25 +280,27 @@ onMounted(() => scrollToBottom())
 
 watch(() => chatStore.jumpMsgId, (msgId) => {
   if (!msgId) return
-  const idx = displayItems.value.findIndex(i => i.id === msgId)
-  if (idx >= 0) {
-    scrollerRef.value?.scrollToItem(idx)
-    nextTick(() => {
-      const el = document.getElementById('msg-' + msgId)
-      if (el) { el.classList.add('msg-highlight'); setTimeout(() => el.classList.remove('msg-highlight'), 2000) }
-    })
+  const tryScroll = (retries = 0) => {
+    const el = document.getElementById('msg-' + msgId)
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      el.classList.add('msg-highlight')
+      setTimeout(() => el.classList.remove('msg-highlight'), 2000)
+      chatStore.jumpMsgId = null
+    } else if (retries < 5) {
+      setTimeout(() => tryScroll(retries + 1), 300)
+    }
   }
-  chatStore.jumpMsgId = null
+  setTimeout(() => tryScroll(), 200)
 })
 </script>
 
 <style scoped>
 .ml-root {
-  flex: 1; overflow: hidden; position: relative;
+  flex: 1; overflow-y: auto; position: relative;
+  padding: 8px 0;
 }
-.ml-scroller { height: 100%; padding: 8px 0; }
-.ml-scroller :deep(.vue-recycle-scroller__item-wrapper) { padding: 0 20px; }
-.ml-empty-list { min-height: 1px; }
+.ml-inner { padding: 0 20px; }
 .ml-date-sep {
   text-align: center; margin: 16px 0;
 }
