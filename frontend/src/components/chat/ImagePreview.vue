@@ -34,7 +34,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 
 const props = defineProps({
   visible: Boolean,
@@ -43,9 +43,13 @@ const props = defineProps({
 })
 defineEmits(['close'])
 
-const idx = ref(props.index)
+const idx = ref(0)
 const scale = ref(1)
 const rotate = ref(0)
+
+watch(() => props.visible, (v) => {
+  if (v) { idx.value = props.index; scale.value = 1; rotate.value = 0 }
+})
 
 const total = computed(() => props.images.length)
 const currentSrc = computed(() => props.images[idx.value]?.content || props.images[idx.value]?.fileUrl || '')

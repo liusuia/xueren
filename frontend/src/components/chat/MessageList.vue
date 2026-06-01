@@ -243,7 +243,6 @@ async function onMsgCtxAction(item) {
 
 function onImgClick(msg) {
   const imgs = props.messages.filter(m => m.msgType === 2)
-  // Vue Proxy 下 indexOf 不可靠，用 id 匹配
   const idx = imgs.findIndex(m => String(m.id) === String(msg.id))
   emit('preview', { images: imgs, index: idx >= 0 ? idx : 0 })
 }
