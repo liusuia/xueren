@@ -132,12 +132,13 @@ const previewVisible = ref(false)
 const previewImages = ref([])
 const previewIndex = ref(0)
 function onPreview(msg) {
-  // 仅预览普通图片(msgType 2)，不包含表情包(msgType 7)
   const all = chat.messages.filter(m => m.msgType === 2)
   previewImages.value = all
-  // 乐观消息用 temp_ 前缀，真实消息用数字 id，都尝试匹配
-  const idx = all.findIndex(m => m.id === msg.id || (msg._optimistic && m.content === msg.content))
-  previewIndex.value = idx >= 0 ? idx : 0
+  // 先用引用匹配，再用 id 匹配
+  let idx = all.indexOf(msg)
+  if (idx < 0) idx = all.findIndex(m => m.id === msg.id)
+  if (idx < 0) idx = 0
+  previewIndex.value = idx
   previewVisible.value = true
 }
 
