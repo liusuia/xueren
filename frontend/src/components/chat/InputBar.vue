@@ -175,13 +175,25 @@ async function onPaste(e) {
       const file = item.getAsFile()
       if (file) {
         try {
-          const fileVO = await fileApi.upload(file)
           emit('sendImage', file)
+          clearDraft()
         } catch { /* ignore */ }
       }
       return
     }
   }
+}
+
+function clearDraft() {
+  if (!chat.currentConv) return
+  const cv = chat.currentConv
+  cv.draft = ''
+  const item = convStore.list.find(c => c.targetType === cv.targetType && c.targetId === cv.targetId)
+  if (item) item.draft = ''
+  // 同步 lastConv 防止切会话时把旧草稿写回
+  if (lastConv) lastConv.text = ''
+  clearTimeout(draftTimer)
+  saveDraft(cv.targetType, cv.targetId, '')
 }
 
 function onEnter(e) {

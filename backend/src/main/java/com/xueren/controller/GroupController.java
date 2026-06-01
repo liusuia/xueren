@@ -113,6 +113,17 @@ public class GroupController {
         return ApiResponse.ok("已加入群组", null);
     }
 
+    @PostMapping("/join-by-code/{code}")
+    public ApiResponse<Void> joinByCode(@PathVariable String code) {
+        groupService.joinByGroupCode(AuthHolder.currentUserId(), code);
+        return ApiResponse.ok("已加入群组", null);
+    }
+
+    @GetMapping("/by-code/{code}")
+    public ApiResponse<GroupVO> getByCode(@PathVariable String code) {
+        return ApiResponse.ok(groupService.getGroupByCode(code));
+    }
+
     @PutMapping("/{groupId}/admin/{userId}")
     public ApiResponse<Void> setAdmin(@PathVariable Long groupId, @PathVariable Long userId,
                                        @RequestBody Map<String, Boolean> body) {

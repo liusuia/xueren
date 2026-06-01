@@ -15,6 +15,7 @@
               <Avatar :src="groupStore.currentGroup.avatar" :name="groupStore.currentGroup.name" :size="56" />
               <div v-if="!editingName" class="gip-name" :class="{ editable: canEditName }" @click="startEditName">{{ groupStore.currentGroup.name }}</div>
               <input v-else ref="nameInputRef" class="gip-inp gip-name-input" :value="editNameVal" @blur="saveName" @keydown.enter="$event.target.blur()" @keydown.escape="editingName=false" />
+              <div class="gip-code" v-if="groupStore.currentGroup.groupCode">群号: {{ groupStore.currentGroup.groupCode }}</div>
             </div>
 
             <!-- 群公告 -->
@@ -326,6 +327,7 @@ async function onDismiss() { if (await cfm.danger('确定解散群聊？此操�
 .gip-name { font-size: 17px; font-weight: 600; color: var(--text-primary, #e8e8ea); margin-top: 8px; }
 .gip-name.editable { cursor: pointer; border-bottom: 1px dashed transparent; }
 .gip-name.editable:hover { border-bottom-color: var(--accent, #f7931e); }
+.gip-code { font-size: 12px; color: var(--text-muted, #999); margin-top: 4px; user-select: all; }
 .gip-name-input { font-size: 17px; font-weight: 600; text-align: center; margin-top: 8px; }
 
 .gip-card { background: var(--bg-input, #22252d); border-radius: 8px; padding: 12px 14px; margin-bottom: 12px; }

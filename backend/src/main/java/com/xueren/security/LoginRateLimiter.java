@@ -12,9 +12,22 @@ public class LoginRateLimiter {
     private static final long LOCK_MINUTES = 15;
 
     private final ConcurrentMap<String, int[]> attempts = new ConcurrentHashMap<>();
+    private volatile long lastCleanup = System.currentTimeMillis();
+
+    /** 定期清理过期记录，防止内存泄漏 */
+    private void cleanIfNeeded() {
+        long now = System.currentTimeMillis();
+        if (now - lastCleanup < 60_000) return;
+        lastCleanup = now;
+        attempts.entrySet().removeIf(e -> {
+            int[] v = e.getValue();
+            return v[1] > 0 && now > v[1] + 3600_000; // 锁定过期后1小时清理
+        });
+    }
 
     /** 记录一次失败，返回 true 表示已被锁定 */
     public boolean recordFailure(String key) {
+        cleanIfNeeded();
         long now = System.currentTimeMillis();
         int[] record = attempts.compute(key, (k, v) -> {
             if (v == null) return new int[]{1, 0}; // [attempts, lockUntilMs]

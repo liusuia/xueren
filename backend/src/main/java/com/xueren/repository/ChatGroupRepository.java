@@ -11,4 +11,8 @@ public interface ChatGroupRepository extends JpaRepository<ChatGroup, Long> {
 
     @Query("SELECT g FROM ChatGroup g WHERE g.name LIKE %:keyword%")
     List<ChatGroup> searchByName(@Param("keyword") String keyword);
+
+    java.util.Optional<ChatGroup> findByGroupCode(String groupCode);
+
+    boolean existsByGroupCode(String groupCode);
 }

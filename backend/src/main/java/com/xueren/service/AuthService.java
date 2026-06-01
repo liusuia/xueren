@@ -141,7 +141,7 @@ public class AuthService {
             "INSERT INTO password_reset (email, code, expires_at) VALUES (?, ?, ?)",
             email, code, LocalDateTime.now().plusMinutes(10));
         mailService.sendResetCode(email, code);
-        return code;
+        return "验证码已发送至邮箱";
     }
 
     @Transactional

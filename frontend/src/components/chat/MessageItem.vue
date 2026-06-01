@@ -14,7 +14,7 @@
       <div class="mi-body" :class="{ right: isSelf }">
         <div v-if="!isSelf && isGroup" class="mi-sender">{{ senderName }}</div>
         <div class="mi-row" :class="{ right: isSelf }">
-          <span v-if="msg._failed" class="mi-fail" title="发送失败">!</span>
+          <span v-if="msg._failed" class="mi-fail" title="点击重发" @click.stop="retrySend(msg)">!</span>
           <MessageBubble :msg="msg" :isSelf="isSelf" />
         </div>
       </div>
@@ -30,10 +30,12 @@ import { computed } from 'vue'
 import Avatar from '../common/Avatar.vue'
 import MessageBubble from './MessageBubble.vue'
 import { useAuthStore } from '../../stores/auth'
+import { useChatStore } from '../../stores/chat'
 import { useContactStore } from '../../stores/contacts'
 import { MSG_TYPE } from '../../utils/constants'
 
 const auth = useAuthStore()
+const chatStore = useChatStore()
 const contactStore = useContactStore()
 const props = defineProps({
   msg: { type: Object, required: true },
@@ -41,6 +43,10 @@ const props = defineProps({
 })
 
 defineEmits(['userClick'])
+
+function retrySend(msg) {
+  chatStore.retryMessage(msg)
+}
 const isSelf = computed(() => props.msg.fromUserId === auth.user?.id)
 const systemText = computed(() => {
   if (props.msg.isRecalled) {

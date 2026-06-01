@@ -7,10 +7,11 @@ import com.xueren.netty.WsPacket;
 import com.xueren.service.MessagePushService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
-import org.springframework.context.event.EventListener;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.event.TransactionalEventListener;
+import org.springframework.transaction.event.TransactionPhase;
 
 import java.util.Map;
 
@@ -32,7 +33,7 @@ public class GroupEventListener {
     }
 
     @Async
-    @EventListener
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void onJoinRequest(JoinRequestEvent event) {
         try {
             var ch = channelManager.getChannel(event.ownerId());
@@ -46,7 +47,7 @@ public class GroupEventListener {
     }
 
     @Async
-    @EventListener
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void onGroupEvent(GroupEvent event) {
         try {
             Long msgId = jdbc.queryForObject(

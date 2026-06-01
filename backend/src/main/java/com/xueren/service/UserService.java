@@ -113,7 +113,7 @@ public class UserService {
         jdbc.update("INSERT INTO password_reset (email, code, expires_at) VALUES (?, ?, ?)",
                 newEmail, code, LocalDateTime.now().plusMinutes(10));
         mailService.sendResetCode(newEmail, code);
-        return code;
+        return "验证码已发送至新邮箱";
     }
 
     @Transactional

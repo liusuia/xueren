@@ -1,18 +1,28 @@
 <template>
-  <div class="ml-root" :class="[ui.theme]">
-    <NavigationSidebar @profile="showProfile = true" />
+  <div class="ml-root" :class="[ui.theme, bp.breakpoint.value, { 'show-sidebar': showSidebar }]">
+    <!-- 移动端汉堡菜单按钮 -->
+    <button v-if="!bp.isDesktop()" class="ml-hamburger" @click="showSidebar = !showSidebar">
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/></svg>
+    </button>
+
+    <NavigationSidebar
+      v-show="bp.isDesktop() || showSidebar"
+      @profile="showProfile = true; showSidebar = false"
+    />
 
     <ListPanel
-      @selectConv="onSelectConv"
+      v-show="bp.isDesktop() || !chat.currentConv"
+      @selectConv="(c) => { onSelectConv(c); showSidebar = false }"
       @showFriendInfo="onShowFriendInfo"
       @showGroupInfo="onShowGroupInfoFromList"
       @openSearch="showSearch = true"
     />
 
     <!-- 拖拽手柄 -->
-    <div class="ml-resize" @mousedown="startResize"></div>
+    <div v-if="bp.isDesktop()" class="ml-resize" @mousedown="startResize"></div>
 
     <ChatPanel
+      v-show="bp.isDesktop() || chat.currentConv"
       @close="onCloseChat"
       @groupInfo="onOpenGroupInfo"
       @userInfo="onShowUserInfo"
@@ -39,7 +49,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted, onUnmounted, watch } from 'vue'
 import { useUiStore } from '../../stores/ui'
 import { useAuthStore } from '../../stores/auth'
 import { useChatStore } from '../../stores/chat'
@@ -48,6 +58,7 @@ import { useContactStore } from '../../stores/contacts'
 import { useGroupStore } from '../../stores/groups'
 import { useWebSocket } from '../../composables/useWebSocket'
 import { addWsListener } from '../../api/ws'
+import { useBreakpoint } from '../../composables/useBreakpoint'
 import { useKeyboard } from '../../composables/useKeyboard'
 
 import NavigationSidebar from './NavigationSidebar.vue'
@@ -64,6 +75,7 @@ import ConfirmDialog from '../common/ConfirmDialog.vue'
 import { useConfirm } from '../../composables/useConfirm'
 import { playMessageSound } from '../../utils/sound'
 
+const bp = useBreakpoint()
 const cfm = useConfirm()
 const ui = useUiStore()
 const auth = useAuthStore()
@@ -79,6 +91,7 @@ const userInfoUserId = ref(null)
 const showFriendInfo = ref(false)
 const friendInfoUserId = ref(null)
 const showChatSearch = ref(false)
+const showSidebar = ref(false)
 
 // WebSocket 消息监听
 const { onNewMessage, onMessageRecalled } = useWebSocket()
@@ -123,7 +136,7 @@ onMessageRecalled((msg) => {
 
 // 正在输入指示
 let typingTimer = null
-addWsListener((packet) => {
+const unsubWs = addWsListener((packet) => {
   if (packet.type === 'JOIN_REQUEST') {
     groupStore.fetchPendingCounts()
     return
@@ -160,6 +173,12 @@ addWsListener((packet) => {
 // 名片点击 → 打开用户资料
 watch(() => ui.showUserCardId, (uid) => {
   if (uid) { userInfoUserId.value = uid; showUserInfo.value = true; ui.closeUserCard() }
+})
+
+// 组件销毁时清理
+onUnmounted(() => {
+  unsubWs()
+  clearTimeout(typingTimer)
 })
 
 // 初始化数据
@@ -272,4 +291,34 @@ useKeyboard([
   transition: background 0.15s; flex-shrink: 0; z-index: 5;
 }
 .ml-resize:hover, .ml-resize:active { background: var(--accent, #f7931e); }
+
+/* 汉堡菜单按钮 */
+.ml-hamburger {
+  display: none; position: fixed; top: 10px; left: 10px; z-index: 100;
+  width: 36px; height: 36px; align-items: center; justify-content: center;
+  border: none; border-radius: 8px; background: var(--bg-dialog, #252529);
+  color: var(--text-secondary, #bbb); cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+
+/* 平板/手机：显示汉堡菜单 */
+.ml-root.tablet .ml-hamburger,
+.ml-root.mobile .ml-hamburger { display: flex; }
+
+/* 平板：侧边栏缩小 */
+.ml-root.tablet > :deep(.nav-sidebar) { width: 48px; min-width: 48px; }
+
+/* 手机：侧边栏作为固定浮层 */
+.ml-root.mobile > :deep(.nav-sidebar) {
+  position: fixed; left: 0; top: 0; bottom: 0; z-index: 90;
+  width: 220px; box-shadow: 2px 0 12px rgba(0,0,0,0.4);
+  display: none;
+}
+.ml-root.mobile.show-sidebar > :deep(.nav-sidebar) { display: flex; }
+
+/* 手机：列表面板和聊天面板全宽 */
+.ml-root.mobile > :deep(.list-panel),
+.ml-root.mobile > :deep(.chat-panel) {
+  width: 100% !important; max-width: 100%;
+}
 </style>

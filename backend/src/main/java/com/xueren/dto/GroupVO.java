@@ -11,6 +11,7 @@ import java.util.List;
 public class GroupVO {
 
     private Long id;
+    private String groupCode;
     private String name;
     private String avatar;
     private Long ownerId;

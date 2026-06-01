@@ -37,6 +37,9 @@ public class ChatGroup {
     @Column(name = "join_mode")
     private Integer joinMode;
 
+    @Column(name = "group_code", length = 10, unique = true)
+    private String groupCode;
+
     @Column(name = "updated_at", insertable = false, updatable = false)
     private LocalDateTime updatedAt;
 }

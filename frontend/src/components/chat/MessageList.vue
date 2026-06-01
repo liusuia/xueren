@@ -21,6 +21,7 @@
     <div v-if="chatStore.multiSelect" class="ml-ms-bar">
       <button class="ml-ms-cancel" @click="chatStore.toggleMultiSelect()">取消</button>
       <span class="ml-ms-count">已选 {{ chatStore.selectedIds.size }} 条</span>
+      <button class="ml-ms-fwd" :disabled="!chatStore.selectedIds.size" @click="openMultiForward">转发</button>
       <button class="ml-ms-del" :disabled="!chatStore.selectedIds.size" @click="chatStore.deleteSelected()">删除</button>
     </div>
 
@@ -42,7 +43,7 @@
     <Teleport to="body">
       <div v-if="showForward" class="fw-overlay" @click="showForward = false">
         <div class="fw-dialog" @click.stop>
-          <div class="fw-hd">选择转发到</div>
+          <div class="fw-hd">{{ isMultiForward ? '转发 ' + chatStore.selectedIds.size + ' 条消息到' : '选择转发到' }}</div>
           <div class="fw-list">
             <div v-for="c in convStore.list" :key="c.id" class="fw-item" @click="doForward(c)">
               <span>{{ c.targetName }}</span>
@@ -90,20 +91,48 @@ let ctxMsg = null
 
 const showForward = ref(false)
 const forwardMsg = ref(null)
+const isMultiForward = ref(false)
+
 async function doForward(conv) {
   showForward.value = false
-  if (!forwardMsg.value) return
   try {
-    const payload = {
-      chatType: conv.targetType,
-      msgType: forwardMsg.value.msgType || 1,
-      content: forwardMsg.value.content || '',
-      fileId: forwardMsg.value.fileId || undefined
+    if (isMultiForward.value) {
+      // 批量转发选中的消息
+      const selected = props.messages.filter(m => chatStore.selectedIds.has(m.id))
+      for (const msg of selected) {
+        const payload = {
+          chatType: conv.targetType,
+          msgType: msg.msgType || 1,
+          content: msg.content || '',
+          fileId: msg.fileId || undefined
+        }
+        if (conv.targetType === 1) payload.toUserId = conv.targetId
+        else payload.groupId = conv.targetId
+        await messageApi.send(payload)
+      }
+      chatStore.toggleMultiSelect()
+    } else {
+      if (!forwardMsg.value) return
+      const msg = forwardMsg.value
+      const payload = {
+        chatType: conv.targetType,
+        msgType: msg.msgType || 1,
+        content: msg.content || '',
+        fileId: msg.fileId || undefined
+      }
+      if (conv.targetType === 1) payload.toUserId = conv.targetId
+      else payload.groupId = conv.targetId
+      await messageApi.send(payload)
     }
-    if (conv.targetType === 1) payload.toUserId = conv.targetId
-    else payload.groupId = conv.targetId
-    await messageApi.send(payload)
   } catch {}
+  isMultiForward.value = false
+  forwardMsg.value = null
+}
+
+function openMultiForward() {
+  isMultiForward.value = true
+  forwardMsg.value = null
+  showForward.value = true
 }
 
 function onMsgCtx(e, msg) {
@@ -114,6 +143,10 @@ function onMsgCtx(e, msg) {
   const isMyMsg = myId > 0 && msgFromId === myId
   const isRecalled = msg.isRecalled === 1 || msg.isRecalled === true
   const items = []
+  // 复制（文本、表情、图片）
+  if (!isRecalled && (msg.msgType === 1 || msg.msgType === 4 || msg.msgType === 2)) {
+    items.push({ label: '复制', action: 'copy' })
+  }
   // 多选
   items.push({ label: '多选', action: 'multiSelect' })
   // 转发
@@ -147,6 +180,27 @@ async function onMsgCtxAction(item) {
       await messageApi.hide(ctxMsg.id)
     } catch { /* 后端调用失败不影响前端移除 */ }
     chatStore.removeMessageLocal(ctxMsg.id)
+  } else if (item.action === 'copy') {
+    try {
+      if (ctxMsg.msgType === 2 && ctxMsg.content) {
+        // 图片消息：fetch 图片 → canvas 转 PNG → 写入剪贴板
+        const img = new Image()
+        await new Promise((resolve, reject) => {
+          img.onload = resolve
+          img.onerror = reject
+          img.src = ctxMsg.content
+        })
+        const canvas = document.createElement('canvas')
+        canvas.width = img.naturalWidth
+        canvas.height = img.naturalHeight
+        const ctx2d = canvas.getContext('2d')
+        ctx2d.drawImage(img, 0, 0)
+        const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'))
+        await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })])
+      } else {
+        await navigator.clipboard.writeText(ctxMsg.content || '')
+      }
+    } catch { /* 剪贴板不可用 */ }
   } else if (item.action === 'recall') {
     try {
       await chatStore.recallMessage(ctxMsg.id)
@@ -159,6 +213,7 @@ async function onMsgCtxAction(item) {
     chatStore.startEdit(ctxMsg.id, ctxMsg.content)
   } else if (item.action === 'forward') {
     forwardMsg.value = ctxMsg
+    isMultiForward.value = false
     showForward.value = true
   }
 }
@@ -176,11 +231,20 @@ function scrollToBottom() {
   })
 }
 
+let loadingOlder = false
 function onScroll() {
   if (!rootRef.value) return
   const { scrollTop, scrollHeight, clientHeight } = rootRef.value
   showScrollBtn.value = scrollHeight - scrollTop - clientHeight > 150
+  // 滚动到顶部时加载更早的消息
+  if (scrollTop <= 50 && !loadingOlder && props.messages.length > 0) {
+    loadingOlder = true
+    emit('loadOlder')
+  }
 }
+// ChatPanel loadOlder 完成后重置标志位
+function onLoadOlderDone() { loadingOlder = false }
+defineExpose({ onLoadOlderDone })
 
 // 新消息自动滚到底部（用户需在底部附近，且忽略初始空 DOM）
 watch(() => props.messages.length, () => {
@@ -254,6 +318,8 @@ watch(() => chatStore.jumpMsgId, (msgId) => {
 }
 .ml-ms-cancel { background: none; border: none; color: var(--text-muted, #888); font-size: 13px; cursor: pointer; }
 .ml-ms-count { font-size: 13px; color: var(--text-primary, #e8e8ea); }
+.ml-ms-fwd { padding: 6px 20px; border: none; border-radius: 4px; background: var(--accent, #f7931e); color: #fff; font-size: 13px; cursor: pointer; }
+.ml-ms-fwd:disabled { opacity: 0.4; cursor: not-allowed; }
 .ml-ms-del { padding: 6px 20px; border: none; border-radius: 4px; background: #e74c3c; color: #fff; font-size: 13px; cursor: pointer; }
 .ml-ms-del:disabled { opacity: 0.4; cursor: not-allowed; }
 .fw-overlay { position: fixed; inset: 0; z-index: 300; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; }

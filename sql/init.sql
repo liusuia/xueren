@@ -32,13 +32,16 @@ CREATE TABLE IF NOT EXISTS friend (
 -- 群组表
 CREATE TABLE IF NOT EXISTS `group` (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    group_code VARCHAR(10) COMMENT '群号（6位数字）',
     name VARCHAR(100) NOT NULL,
     avatar VARCHAR(255),
     owner_id BIGINT NOT NULL COMMENT '群主',
     notice VARCHAR(1000) COMMENT '群公告',
     notice_updated_at DATETIME,
+    join_mode TINYINT DEFAULT 0 COMMENT '0=自由加入 1=需审批 2=禁止加入',
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE INDEX uk_group_code (group_code),
     INDEX idx_owner (owner_id)
 );
 

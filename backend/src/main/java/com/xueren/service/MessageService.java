@@ -18,6 +18,7 @@ import com.xueren.repository.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -41,6 +42,7 @@ public class MessageService {
     private final UserService userService;
     private final UserRepository userRepository;
     private final MessagePushService messagePushService;
+    private final JdbcTemplate jdbc;
 
     public MessageService(MessageRepository messageRepository,
                           MessageReadRepository messageReadRepository,
@@ -52,7 +54,8 @@ public class MessageService {
                           GroupService groupService,
                           ConversationService conversationService,
                           UserService userService,
-                          MessagePushService messagePushService) {
+                          MessagePushService messagePushService,
+                          JdbcTemplate jdbc) {
         this.messageRepository = messageRepository;
         this.messageReadRepository = messageReadRepository;
         this.storedFileRepository = storedFileRepository;
@@ -64,6 +67,7 @@ public class MessageService {
         this.userService = userService;
         this.userRepository = userRepository;
         this.messagePushService = messagePushService;
+        this.jdbc = jdbc;
     }
 
     @Transactional
@@ -200,23 +204,20 @@ public class MessageService {
     }
 
     private void updateConversationPreviewAfterRecall(Message message) {
+        String preview = "[消息已撤回]";
         if (message.getChatType() == Constants.CHAT_SINGLE) {
-            clearPreviewIfLast(message.getFromUserId(), Constants.TARGET_USER, message.getToUserId(), message.getId());
-            clearPreviewIfLast(message.getToUserId(), Constants.TARGET_USER, message.getFromUserId(), message.getId());
+            jdbc.update(
+                "UPDATE conversation SET last_message_preview=? WHERE user_id=? AND target_type=1 AND target_id=? AND last_message_id=?",
+                preview, message.getFromUserId(), message.getToUserId(), message.getId());
+            jdbc.update(
+                "UPDATE conversation SET last_message_preview=? WHERE user_id=? AND target_type=1 AND target_id=? AND last_message_id=?",
+                preview, message.getToUserId(), message.getFromUserId(), message.getId());
         } else {
-            groupService.listMemberUserIds(message.getGroupId()).forEach(memberId ->
-                clearPreviewIfLast(memberId, Constants.TARGET_GROUP, message.getGroupId(), message.getId())
-            );
+            // 批量更新：一条 SQL 更新所有群成员的会话预览
+            jdbc.update(
+                "UPDATE conversation SET last_message_preview=? WHERE target_type=2 AND target_id=? AND last_message_id=?",
+                preview, message.getGroupId(), message.getId());
         }
-    }
-
-    private void clearPreviewIfLast(Long userId, Integer targetType, Long targetId, Long messageId) {
-        conversationRepository.findByUserIdAndTargetTypeAndTargetId(userId, targetType, targetId)
-                .ifPresent(c -> {
-                    if (c.getLastMessageId() != null && c.getLastMessageId().equals(messageId)) {
-                        c.setLastMessagePreview("[消息已撤回]");
-                    }
-                });
     }
 
     @Transactional

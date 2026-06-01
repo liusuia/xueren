@@ -16,9 +16,13 @@
         <span class="ctl-act-icon" style="background:#f7931e"><svg viewBox="0 0 24 24" width="16" height="16" fill="#fff"><path d="M15 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm-9-2V7H4v3H1v2h3v3h2v-3h3v-2H6zm9 4c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg></span>
         <span>添加好友</span>
       </button>
-      <button class="ctl-act-btn" @click="showJoinGroup = true">
+      <button class="ctl-act-btn" @click="emit('joinGroup')">
         <span class="ctl-act-icon" style="background:#9B59B6"><svg viewBox="0 0 24 24" width="16" height="16" fill="#fff"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg></span>
         <span>加入群聊</span>
+      </button>
+      <button class="ctl-act-btn" @click="emit('showBlockedList')">
+        <span class="ctl-act-icon" style="background:#e74c3c"><svg viewBox="0 0 24 24" width="16" height="16" fill="#fff"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg></span>
+        <span>黑名单</span>
       </button>
     </div>
 
@@ -47,25 +51,6 @@
       </div>
     </div>
 
-    <!-- 加入群聊弹窗 -->
-    <Teleport to="body">
-      <div v-if="showJoinGroup" class="cd-overlay" @click="showJoinGroup = false">
-        <div class="cd-dialog" @click.stop>
-          <div class="cd-hd">加入群聊</div>
-          <div class="cd-search"><input v-model="joinGroupKw" class="gip-inp" placeholder="搜索群名称" @input="onSearchGroup" /></div>
-          <div class="cd-list">
-            <div v-for="g in joinGroupResults" :key="g.id" class="cd-item" @click="doJoinGroup(g)">
-              <Avatar :src="g.avatar" :name="g.name" :size="36" />
-              <span>{{ g.name }}</span>
-              <button class="ctl-add-btn">加入</button>
-            </div>
-            <div v-if="!joinGroupKw" class="cd-empty">输入群名称搜索</div>
-            <div v-else-if="!joinGroupResults.length" class="cd-empty">未找到群聊</div>
-          </div>
-        </div>
-      </div>
-    </Teleport>
-
     <EmptyState v-if="!groupStore.list.length && !contactStore.friendSections.length" title="暂无好友和群聊" desc="去添加好友或创建群聊吧" />
 
     <!-- 发送名片 - 选择会话 -->
@@ -89,7 +74,7 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue'
+import { ref } from 'vue'
 import Avatar from '../common/Avatar.vue'
 import Badge from '../common/Badge.vue'
 import EmptyState from '../common/EmptyState.vue'
@@ -99,37 +84,13 @@ import { useGroupStore } from '../../stores/groups'
 import { useConversationStore } from '../../stores/conversations'
 import { useChatStore } from '../../stores/chat'
 import { useConfirm } from '../../composables/useConfirm'
-import { groupApi } from '../../api/endpoints'
-import { useNotification } from '../../composables/useNotification'
 
 const contactStore = useContactStore()
 const groupStore = useGroupStore()
 const convStore = useConversationStore()
 const chatStore = useChatStore()
 const cfm = useConfirm()
-const { success, error } = useNotification()
-const showJoinGroup = ref(false)
-const joinGroupKw = ref('')
-const joinGroupResults = ref([])
-let joinTimer = null
-watch(showJoinGroup, (v) => {
-  if (v) { joinGroupKw.value = ''; joinGroupResults.value = [] }
-  else { joinGroupKw.value = ''; joinGroupResults.value = [] }
-})
-function onSearchGroup() { clearTimeout(joinTimer); joinTimer = setTimeout(async () => {
-  const kw = joinGroupKw.value.trim()
-  if (!kw) { joinGroupResults.value = []; return }
-  try {
-    const results = await groupApi.search(kw) || []
-    const myIds = new Set(groupStore.list.map(g => g.id))
-    joinGroupResults.value = results.filter(g => !myIds.has(g.id))
-  } catch { joinGroupResults.value = [] }
-}, 300) }
-async function doJoinGroup(g) {
-  try { await groupApi.join(g.id); showJoinGroup.value = false; success('已加入 ' + g.name); groupStore.fetchGroups() }
-  catch (e) { error(e.message || '加入失败') }
-}
-const emit = defineEmits(['select', 'addFriend', 'friendRequests', 'createGroup', 'showFriendInfo', 'showGroupInfo'])
+const emit = defineEmits(['select', 'addFriend', 'friendRequests', 'createGroup', 'showFriendInfo', 'showGroupInfo', 'showBlockedList', 'joinGroup'])
 
 const ctxVisible = ref(false)
 const ctxPos = ref({ x: 0, y: 0 })

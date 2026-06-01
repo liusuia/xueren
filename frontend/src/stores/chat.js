@@ -192,6 +192,16 @@ export const useChatStore = defineStore('chat', () => {
     }
   }
 
+  async function retryMessage(msg) {
+    const idx = messages.value.findIndex(m => m.id === msg.id)
+    if (idx !== -1) messages.value.splice(idx, 1)
+    await sendMessage({
+      content: msg.content,
+      msgType: msg.msgType || 1,
+      fileId: msg.fileId || undefined
+    })
+  }
+
   async function recallMessage(messageId) {
     await messageApi.recall(messageId)
     const msg = messages.value.find(m => m.id === messageId)
@@ -251,7 +261,7 @@ export const useChatStore = defineStore('chat', () => {
 
   return {
     currentConv, messages, loading, sending, jumpMsgId, replyTo, typingUser,
-    openChat, closeChat, fetchMessages, loadOlderMessages, sendMessage, sendContactCard, recallMessage, clearHistory,
+    openChat, closeChat, fetchMessages, loadOlderMessages, sendMessage, retryMessage, sendContactCard, recallMessage, clearHistory,
     setReplyTo, clearReply, setTypingUser, editMsgId, editContent, startEdit, cancelEdit, submitEdit,
     multiSelect, selectedIds, toggleMultiSelect, toggleSelect, deleteSelected,
     removeMessageLocal, appendFromPush, markRecalledFromPush, sortedMessages

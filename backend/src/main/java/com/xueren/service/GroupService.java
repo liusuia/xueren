@@ -73,6 +73,7 @@ public class GroupService {
         ChatGroup group = new ChatGroup();
         group.setName(request.getName());
         group.setOwnerId(ownerId);
+        group.setGroupCode(generateGroupCode());
         chatGroupRepository.save(group);
 
         saveMember(group.getId(), ownerId, Constants.GROUP_ROLE_OWNER);
@@ -84,6 +85,15 @@ public class GroupService {
             saveMember(group.getId(), memberId, Constants.GROUP_ROLE_MEMBER);
         }
         return getGroupDetail(group.getId());
+    }
+
+    private String generateGroupCode() {
+        var random = new java.security.SecureRandom();
+        for (int i = 0; i < 20; i++) {
+            String code = String.format("%06d", random.nextInt(900000) + 100000);
+            if (!chatGroupRepository.existsByGroupCode(code)) return code;
+        }
+        throw new BusinessException("生成群号失败，请重试");
     }
 
     public List<GroupVO> listMyGroups(Long userId) {
@@ -119,6 +129,7 @@ public class GroupService {
         }
         return GroupVO.builder()
                 .id(group.getId())
+                .groupCode(group.getGroupCode())
                 .name(group.getName())
                 .avatar(group.getAvatar())
                 .ownerId(group.getOwnerId())
@@ -185,6 +196,11 @@ public class GroupService {
         }
         userService.requireUser(userId);
         saveMember(groupId, userId, Constants.GROUP_ROLE_MEMBER);
+        // 发系统消息：XXX邀请了YYY加入群聊
+        String opName = resolveDisplayName(userRepository.findById(operatorId).orElse(null));
+        String invitedName = resolveDisplayName(userRepository.findById(userId).orElse(null));
+        String sysMsg = opName + "邀请了" + invitedName + "加入群聊";
+        publishGroupSystemMessage(groupId, userId, sysMsg);
     }
 
     @Transactional
@@ -196,10 +212,15 @@ public class GroupService {
         if (operator.getRole() > Constants.GROUP_ROLE_ADMIN) {
             throw new BusinessException("没有权限邀请成员");
         }
+        String opName = resolveDisplayName(userRepository.findById(operatorId).orElse(null));
         for (Long userId : userIds) {
             if (!groupMemberRepository.existsByGroupIdAndUserId(groupId, userId)) {
                 userService.requireUser(userId);
                 saveMember(groupId, userId, Constants.GROUP_ROLE_MEMBER);
+                // 发系统消息：XXX邀请了YYY加入群聊
+                String invitedName = resolveDisplayName(userRepository.findById(userId).orElse(null));
+                String sysMsg = opName + "邀请了" + invitedName + "加入群聊";
+                publishGroupSystemMessage(groupId, userId, sysMsg);
             }
         }
     }
@@ -211,6 +232,23 @@ public class GroupService {
         member.setRole(role);
         member.setIsMuted(0);
         groupMemberRepository.save(member);
+    }
+
+    private String resolveDisplayName(User user) {
+        if (user == null) return "用户";
+        return user.getNickname() != null ? user.getNickname() : user.getUsername();
+    }
+
+    private void publishGroupSystemMessage(Long groupId, Long fromUserId, String sysMsg) {
+        jdbc.update(
+            "INSERT INTO message (chat_type, from_user_id, group_id, content, msg_type, created_at) VALUES (?,?,?,?,?,NOW())",
+            Constants.CHAT_GROUP, fromUserId, groupId, sysMsg, Constants.MSG_SYSTEM);
+        for (var m : groupMemberRepository.findByGroupId(groupId)) {
+            jdbc.update(
+                "INSERT INTO conversation (user_id, target_type, target_id, last_message_preview, last_message_at) VALUES (?,2,?,?,NOW()) ON DUPLICATE KEY UPDATE last_message_preview=?, last_message_at=NOW()",
+                m.getUserId(), groupId, sysMsg, sysMsg);
+        }
+        eventPublisher.publishEvent(new GroupEvent(groupId, sysMsg));
     }
 
     @Transactional
@@ -250,20 +288,12 @@ public class GroupService {
 
         groupMemberRepository.delete(member);
         // 发系统消息：XXX已被移出群聊
-        User kicked = userRepository.findById(userId).orElse(null);
-        String name = kicked != null ? (kicked.getNickname() != null ? kicked.getNickname() : kicked.getUsername()) : "用户";
+        String name = resolveDisplayName(userRepository.findById(userId).orElse(null));
         String sysMsg = name + "已被移出群聊";
-        jdbc.update("INSERT INTO message (chat_type, from_user_id, group_id, content, msg_type, created_at) VALUES (?,?,?,?,?,NOW())",
-                Constants.CHAT_GROUP, userId, groupId, sysMsg, Constants.MSG_SYSTEM);
-        // 保留被踢用户的会话，只更新预览
+        publishGroupSystemMessage(groupId, userId, sysMsg);
+        // 保留被踢用户的会话，只更新预览（publishGroupSystemMessage 已更新所有现有成员，这里补充被踢用户）
         jdbc.update("INSERT INTO conversation (user_id, target_type, target_id, last_message_preview, last_message_at) VALUES (?,2,?,?,NOW()) ON DUPLICATE KEY UPDATE last_message_preview=?, last_message_at=NOW()",
                 userId, groupId, sysMsg, sysMsg);
-        // 更新群内成员会话
-        for (var m : groupMemberRepository.findByGroupId(groupId)) {
-            jdbc.update("INSERT INTO conversation (user_id, target_type, target_id, last_message_preview, last_message_at) VALUES (?,2,?,?,NOW()) ON DUPLICATE KEY UPDATE last_message_preview=?, last_message_at=NOW()",
-                    m.getUserId(), groupId, sysMsg, sysMsg);
-        }
-        eventPublisher.publishEvent(new GroupEvent(groupId, sysMsg));
     }
 
     @Transactional
@@ -413,20 +443,33 @@ public class GroupService {
     }
 
     /**
-     * 查看群文件列表
+     * 查看群文件列表（批量加载避免 N+1）
      */
     public List<GroupFileVO> listGroupFiles(Long userId, Long groupId) {
         ensureMember(groupId, userId);
-        return groupFileRepository.findByGroupIdOrderByCreatedAtDesc(groupId).stream()
+        List<GroupFile> groupFiles = groupFileRepository.findByGroupIdOrderByCreatedAtDesc(groupId);
+        if (groupFiles.isEmpty()) return List.of();
+        // 批量加载关联文件
+        List<Long> fileIds = groupFiles.stream().map(GroupFile::getFileId).distinct().toList();
+        Map<Long, StoredFile> fileMap = storedFileRepository.findAllById(fileIds).stream()
+                .collect(Collectors.toMap(StoredFile::getId, Function.identity()));
+        // 批量加载上传者
+        List<Long> uploaderIds = groupFiles.stream().map(GroupFile::getUploaderId).distinct().toList();
+        Map<Long, User> userMap = userRepository.findAllById(uploaderIds).stream()
+                .collect(Collectors.toMap(User::getId, Function.identity()));
+        return groupFiles.stream()
                 .map(gf -> {
-                    var file = storedFileRepository.findById(gf.getFileId()).orElse(null);
-                    var uploader = userService.getById(gf.getUploaderId());
+                    var file = fileMap.get(gf.getFileId());
                     if (file == null) return null;
+                    var uploader = userMap.get(gf.getUploaderId());
+                    String uploaderName = uploader != null
+                            ? (uploader.getNickname() != null ? uploader.getNickname() : uploader.getUsername())
+                            : "未知用户";
                     return GroupFileVO.builder()
                             .id(gf.getId())
                             .groupId(groupId)
                             .uploaderId(gf.getUploaderId())
-                            .uploaderName(uploader.getNickname() != null ? uploader.getNickname() : uploader.getUsername())
+                            .uploaderName(uploaderName)
                             .fileId(file.getId())
                             .originalName(file.getOriginalName())
                             .url(file.getStoredPath())
@@ -440,10 +483,28 @@ public class GroupService {
     }
 
     public List<GroupVO> searchGroups(String keyword) {
+        // 先按群号精确搜，再按名称模糊搜
+        var byCode = chatGroupRepository.findByGroupCode(keyword);
+        if (byCode.isPresent()) {
+            return List.of(getGroupDetail(byCode.get().getId()));
+        }
         List<ChatGroup> groups = chatGroupRepository.searchByName(keyword);
         return groups.stream()
                 .map(group -> getGroupDetail(group.getId()))
                 .toList();
+    }
+
+    public GroupVO getGroupByCode(String code) {
+        ChatGroup g = chatGroupRepository.findByGroupCode(code)
+                .orElseThrow(() -> new BusinessException("群聊不存在"));
+        return getGroupDetail(g.getId());
+    }
+
+    @Transactional
+    public void joinByGroupCode(Long userId, String groupCode) {
+        ChatGroup group = chatGroupRepository.findByGroupCode(groupCode)
+                .orElseThrow(() -> new BusinessException("群聊不存在"));
+        joinGroup(userId, group.getId());
     }
 
     @Transactional
@@ -526,16 +587,9 @@ public class GroupService {
         jdbc.update("UPDATE group_join_request SET status=? WHERE id=?", approve ? 1 : 2, requestId);
         if (approve && !groupMemberRepository.existsByGroupIdAndUserId(groupId, applicantId)) {
             saveMember(groupId, applicantId, Constants.GROUP_ROLE_MEMBER);
-            User u = userRepository.findById(applicantId).orElse(null);
-            String name = u != null ? (u.getNickname() != null ? u.getNickname() : u.getUsername()) : "新成员";
+            String name = resolveDisplayName(userRepository.findById(applicantId).orElse(null));
             String sysMsg = name + "加入了群聊";
-            jdbc.update("INSERT INTO message (chat_type, from_user_id, group_id, content, msg_type, created_at) VALUES (?,?,?,?,?,NOW())",
-                    Constants.CHAT_GROUP, applicantId, groupId, sysMsg, Constants.MSG_SYSTEM);
-            for (var m : groupMemberRepository.findByGroupId(groupId)) {
-                jdbc.update("INSERT INTO conversation (user_id, target_type, target_id, last_message_preview, last_message_at) VALUES (?,2,?,?,NOW()) ON DUPLICATE KEY UPDATE last_message_preview=?, last_message_at=NOW()",
-                        m.getUserId(), groupId, sysMsg, sysMsg);
-            }
-            eventPublisher.publishEvent(new GroupEvent(groupId, sysMsg));
+            publishGroupSystemMessage(groupId, applicantId, sysMsg);
         }
     }
 

@@ -40,9 +40,9 @@ spring:
     resources:
       add-mappings: false
 
-  # 生产环境建议通过环境变量设置（逗号分隔）
+  # 生产环境建议通过环境变量设置（逗号分隔）；Ant 风格通配：http://192.168.*.*:5173 匹配局域网
   cors:
-    allowed-origins: ${CORS_ORIGINS:http://localhost:5173,http://127.0.0.1:5173,http://192.168.*:5173}
+    allowed-origins: ${CORS_ORIGINS:http://localhost:5173,http://127.0.0.1:5173,http://192.168.*.*:5173}
 
 xueren:
   jwt:

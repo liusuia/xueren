@@ -131,8 +131,15 @@ async function onAvatarChange(e) {
   e.target.value = ''
 }
 async function onSave() {
+  if (!form.nickname.trim()) { showError('昵称不能为空'); return }
   saving.value = true
-  try { await auth.updateProfile({ ...form }); show.value = false; emit('close') } catch {}
+  try {
+    await auth.updateProfile({ nickname: form.nickname, phone: form.phone, birthday: form.birthday })
+    auth.user.nickname = form.nickname
+    success('已保存')
+    show.value = false
+    emit('close')
+  } catch (e) { showError(e.message || '保存失败') }
   finally { saving.value = false }
 }
 async function onLogout() {

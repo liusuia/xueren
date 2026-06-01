@@ -2,6 +2,10 @@
   <div class="chat-panel" v-if="chat.currentConv" @dragover.prevent @drop.prevent="onDrop">
     <!-- 头部 -->
     <div class="cp-header">
+      <!-- 移动端返回按钮 -->
+      <button class="cp-back-btn" @click="$emit('close')" title="返回">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>
+      </button>
       <div class="cp-h-left">
         <div v-if="chat.currentConv.targetType === 1 && chat.currentConv.targetId === 1" class="cp-fh-avatar">
           <svg viewBox="0 0 24 24" width="18" height="18" fill="#f7931e"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm4 18H6V4h7v5h5v11zM8 15h8v2H8zm0-4h8v2H8z"/></svg>
@@ -31,6 +35,7 @@
 
     <!-- 消息列表 -->
     <MessageList
+      ref="msgListRef"
       :messages="chat.sortedMessages"
       :loading="chat.loading"
       :isGroup="chat.currentConv.targetType === 2"
@@ -119,6 +124,7 @@ const emit = defineEmits(['close', 'groupInfo', 'userInfo', 'friendInfo'])
 
 async function loadOlder() {
   await chat.loadOlderMessages()
+  msgListRef.value?.onLoadOlderDone()
 }
 
 async function onSendText(content, mentions) {
@@ -178,6 +184,16 @@ async function onDrop(e) {
   border-radius: 4px; cursor: pointer; transition: all 0.15s;
 }
 .cp-h-btn:hover { background: var(--bg-hover, rgba(255,255,255,0.06)); color: var(--text-secondary, #bbb); }
+/* 移动端返回按钮 */
+.cp-back-btn {
+  display: none; width: 32px; height: 32px; align-items: center; justify-content: center;
+  border: none; background: transparent; color: var(--text-muted, #888);
+  border-radius: 4px; cursor: pointer; margin-right: 6px; flex-shrink: 0;
+}
+.cp-back-btn:hover { background: var(--bg-hover, rgba(255,255,255,0.06)); }
+/* 非桌面端显示返回按钮 */
+.ml-root.mobile .cp-back-btn,
+.ml-root.tablet .cp-back-btn { display: flex; }
 .cp-fh-avatar { width: 34px; height: 34px; border-radius: 8px; background: rgba(247,147,30,0.15); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 
 .cp-reply-bar {
