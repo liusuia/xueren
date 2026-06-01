@@ -12,7 +12,7 @@
           <span class="fav-time">{{ formatFullTime(m.createdAt) }}</span>
           <button class="fav-del" @click.stop="onDelete(m.id)">×</button>
         </div>
-        <div class="fav-content">{{ m.content || '[图片/文件]' }}</div>
+        <div class="fav-content">{{ previewText(m) }}</div>
       </div>
     </div>
   </div>
@@ -23,11 +23,13 @@ import { ref, onMounted } from 'vue'
 import { favoriteApi } from '../../api/endpoints'
 import { useChatStore } from '../../stores/chat'
 import { useUiStore } from '../../stores/ui'
+import { useAuthStore } from '../../stores/auth'
 import LoadingSpinner from '../common/LoadingSpinner.vue'
 import { formatFullTime } from '../../utils/format'
 
 const chat = useChatStore()
 const ui = useUiStore()
+const auth = useAuthStore()
 const items = ref([])
 const loading = ref(false)
 
@@ -37,9 +39,27 @@ onMounted(async () => {
   finally { loading.value = false }
 })
 
+function previewText(m) {
+  if (!m.content) {
+    if (m.msgType === 2) return '[图片]'
+    if (m.msgType === 7) return '[表情]'
+    if (m.msgType === 8) return '[语音]'
+    if (m.msgType === 3) return '[文件]'
+    return '[消息]'
+  }
+  return m.content.length > 50 ? m.content.slice(0, 50) + '...' : m.content
+}
+
 function jumpTo(m) {
+  const myId = auth.user?.id
+  let targetId
+  if (m.chatType === 1) {
+    targetId = String(m.fromUserId) === String(myId) ? m.toUserId : m.fromUserId
+  } else {
+    targetId = m.groupId
+  }
   ui.setActiveTab('chat')
-  chat.openChat({ targetType: m.chatType, targetId: m.chatType === 1 ? m.fromUserId : m.groupId, targetName: '', targetAvatar: '', draft: '' })
+  chat.openChat({ targetType: m.chatType, targetId: targetId, targetName: '', targetAvatar: '', draft: '' })
   chat.fetchMessages(50)
   ui.openChat()
 }
