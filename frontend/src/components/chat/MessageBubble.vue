@@ -15,11 +15,12 @@
       <span v-if="msg.editedAt" class="mb-edited">已编辑</span>
     </div>
 
-    <!-- 图片消息 -->
+    <!-- 图片 / 表情 -->
     <img
-      v-else-if="msg.msgType === 2"
+      v-else-if="msg.msgType === 2 || msg.msgType === 7"
       :src="msg.content || msg.fileUrl"
       class="mb-img"
+      :class="{ 'mb-sticker': msg.msgType === 7 }"
       @click="$emit('preview', msg)"
       loading="lazy"
       alt="图片"
@@ -57,7 +58,7 @@ const props = defineProps({
 })
 
 const msgTypeClass = computed(() => {
-  const map = { 1: 'type-text', 2: 'type-image', 3: 'type-file', 4: 'type-emoji', 6: 'type-card' }
+  const map = { 1: 'type-text', 2: 'type-image', 3: 'type-file', 4: 'type-emoji', 6: 'type-card', 7: 'type-image' }
   return map[props.msg.msgType] || 'type-text'
 })
 const isMentioned = computed(() => {
@@ -107,6 +108,11 @@ function openCard() {
 .mb-img {
   max-width: 240px; max-height: 320px; border-radius: 8px;
   cursor: pointer; display: block; object-fit: cover;
+}
+.mb-sticker {
+  max-width: 200px; max-height: 200px;
+  width: auto; height: auto;
+  object-fit: contain;
 }
 .mb-file {
   display: flex; align-items: center; gap: 10px;

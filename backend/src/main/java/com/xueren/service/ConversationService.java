@@ -203,6 +203,7 @@ public class ConversationService {
         }
         String content = switch (message.getMsgType()) {
             case Constants.MSG_IMAGE -> "[图片]";
+            case Constants.MSG_STICKER -> "[表情]";
             case Constants.MSG_FILE -> "[文件]";
             case Constants.MSG_CONTACT_CARD -> "[名片]";
             default -> message.getContent() != null && message.getContent().length() > 200

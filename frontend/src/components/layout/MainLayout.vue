@@ -1,5 +1,6 @@
 <template>
   <div class="ml-root" :class="[ui.theme, bp.breakpoint.value, { 'show-sidebar': showSidebar }]">
+    <WsStatusBar />
     <!-- 移动端汉堡菜单按钮 -->
     <button v-if="!bp.isDesktop()" class="ml-hamburger" @click="showSidebar = !showSidebar">
       <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/></svg>
@@ -60,9 +61,11 @@ import { useWebSocket } from '../../composables/useWebSocket'
 import { addWsListener } from '../../api/ws'
 import { useBreakpoint } from '../../composables/useBreakpoint'
 import { useKeyboard } from '../../composables/useKeyboard'
+import { useDesktopNotify } from '../../composables/useDesktopNotify'
 
 import NavigationSidebar from './NavigationSidebar.vue'
 import ListPanel from './ListPanel.vue'
+import WsStatusBar from './WsStatusBar.vue'
 import ChatPanel from './ChatPanel.vue'
 
 // 懒加载引入弹窗组件
@@ -76,6 +79,7 @@ import { useConfirm } from '../../composables/useConfirm'
 import { playMessageSound } from '../../utils/sound'
 
 const bp = useBreakpoint()
+const deskNotify = useDesktopNotify()
 const cfm = useConfirm()
 const ui = useUiStore()
 const auth = useAuthStore()
@@ -114,6 +118,15 @@ onNewMessage((msg) => {
     const targetId = message.chatType === 1 ? message.fromUserId : message.groupId
     if (!convStore.isMuted(message.chatType, targetId)) {
       playMessageSound()
+    }
+  }
+  // 桌面通知：非自己、非当前打开、非免打扰
+  if (!isSelf && !isCurrent) {
+    const targetId = message.chatType === 1 ? message.fromUserId : message.groupId
+    if (!convStore.isMuted(message.chatType, targetId)) {
+      const sender = message.fromNickname || message.fromUserName || ''
+      const body = message.msgType === 2 ? '[图片]' : message.msgType === 3 ? '[文件]' : (message.content || '')
+      deskNotify.notify(sender, body)
     }
   }
 })

@@ -32,6 +32,9 @@
           <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
         </svg>
       </button>
+      <button class="nav-btn" :class="{ 'nav-notify-off': !deskNotify.enabled.value }" @click="deskNotify.toggle()" title="桌面通知">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg>
+      </button>
     </div>
   </nav>
 </template>
@@ -44,10 +47,12 @@ import { useUiStore } from '../../stores/ui'
 import { useConversationStore } from '../../stores/conversations'
 import { useContactStore } from '../../stores/contacts'
 import { useGroupStore } from '../../stores/groups'
+import { useDesktopNotify } from '../../composables/useDesktopNotify'
 
 const auth = useAuthStore()
 const groupStore = useGroupStore()
 const ui = useUiStore()
+const deskNotify = useDesktopNotify()
 const convStore = useConversationStore()
 const contactStore = useContactStore()
 
@@ -89,6 +94,7 @@ defineEmits(['profile'])
 }
 .nav-btn:hover { background: var(--bg-hover, rgba(255,255,255,0.06)); color: var(--text-secondary, #bbb); }
 .nav-btn.active { color: var(--accent, #f7931e); }
+.nav-notify-off { opacity: 0.4; }
 .nav-badge {
   position: absolute; top: -1px; right: -2px;
   min-width: 16px; height: 16px; line-height: 16px;

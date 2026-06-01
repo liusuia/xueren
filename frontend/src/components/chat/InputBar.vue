@@ -33,7 +33,7 @@
       <button class="ib-send" :class="{ ready: text.trim() }" @click="onSend" :disabled="!text.trim()">发送</button>
     </div>
 
-    <EmojiPicker v-if="showEmoji" @select="onEmoji" />
+    <EmojiPicker v-if="showEmoji" @select="onEmoji" @selectEmoji="onCustomEmoji" />
 
     <input type="file" ref="imageInput" accept="image/*" @change="onImageChange" style="display:none" />
     <input type="file" ref="fileInput" @change="onFileChange" style="display:none" />
@@ -59,7 +59,7 @@ const props = defineProps({
   isGroup: { type: Boolean, default: false },
   members: { type: Array, default: () => [] }
 })
-const emit = defineEmits(['sendText', 'sendImage', 'sendFile', 'sendEmoji'])
+const emit = defineEmits(['sendText', 'sendImage', 'sendFile', 'sendEmoji', 'sendImageUrl'])
 
 const text = ref('')
 const showEmoji = ref(false)
@@ -225,6 +225,13 @@ function onEmoji(emoji) {
   text.value += emoji
   showEmoji.value = false
   nextTick(() => inputRef.value?.focus())
+}
+function onCustomEmoji(emoji) {
+  showEmoji.value = false
+  if (!emoji.fileId) {
+    console.error('表情缺少 fileId，请重新上传', emoji)
+  }
+  emit('sendImageUrl', { url: emoji.url, fileId: emoji.fileId })
 }
 function triggerImage() { imageInput.value?.click() }
 function triggerFile() { fileInput.value?.click() }

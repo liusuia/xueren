@@ -65,10 +65,13 @@ import { useConversationStore } from '../../stores/conversations'
 import { useAuthStore } from '../../stores/auth'
 import { messageApi } from '../../api/endpoints'
 import { formatFullTime } from '../../utils/format'
+import http from '../../api/http'
+import { useNotification } from '../../composables/useNotification'
 
 const chatStore = useChatStore()
 const convStore = useConversationStore()
 const auth = useAuthStore()
+const { success, error: showError } = useNotification()
 
 const props = defineProps({
   messages: { type: Array, default: () => [] },
@@ -147,6 +150,10 @@ function onMsgCtx(e, msg) {
   if (!isRecalled && (msg.msgType === 1 || msg.msgType === 4 || msg.msgType === 2)) {
     items.push({ label: '复制', action: 'copy' })
   }
+  // 图片/表情消息：添加到表情
+  if (!isRecalled && (msg.msgType === 2 || msg.msgType === 7) && msg.content) {
+    items.push({ label: '添加到表情', action: 'addEmoji' })
+  }
   // 多选
   items.push({ label: '多选', action: 'multiSelect' })
   // 转发
@@ -211,6 +218,18 @@ async function onMsgCtxAction(item) {
     chatStore.toggleMultiSelect()
   } else if (item.action === 'edit') {
     chatStore.startEdit(ctxMsg.id, ctxMsg.content)
+  } else if (item.action === 'addEmoji') {
+    try {
+      const url = ctxMsg.content.startsWith('http') ? ctxMsg.content : location.origin + ctxMsg.content
+      const resp = await fetch(url)
+      if (!resp.ok) throw new Error('图片加载失败')
+      const blob = await resp.blob()
+      const form = new FormData()
+      form.append('file', blob, 'emoji.png')
+      const res = await http.post('/emoji', form)
+      if (res) success('已添加到表情')
+      else showError('添加失败')
+    } catch (e) { showError(e.message || '添加失败') }
   } else if (item.action === 'forward') {
     forwardMsg.value = ctxMsg
     isMultiForward.value = false

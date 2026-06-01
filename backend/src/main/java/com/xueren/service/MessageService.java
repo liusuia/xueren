@@ -266,6 +266,7 @@ public class MessageService {
             case 2 -> "[图片]";
             case 3 -> "[文件]";
             case 4 -> "[表情]";
+            case 7 -> "[表情]";
             default -> "[消息]";
         };
     }

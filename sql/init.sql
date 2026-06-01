@@ -152,6 +152,19 @@ CREATE TABLE IF NOT EXISTS user_token (
 -- ALTER TABLE friend ADD CONSTRAINT fk_friend_friend FOREIGN KEY (friend_id) REFERENCES user(id);
 -- ALTER TABLE message ADD CONSTRAINT fk_msg_from FOREIGN KEY (from_user_id) REFERENCES user(id);
 -- ALTER TABLE message ADD CONSTRAINT fk_msg_file FOREIGN KEY (file_id) REFERENCES file(id);
+-- 自定义表情表
+CREATE TABLE IF NOT EXISTS emoji (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    user_id BIGINT NOT NULL,
+    name VARCHAR(50) NOT NULL,
+    url VARCHAR(500) NOT NULL,
+    file_id BIGINT,
+    file_hash VARCHAR(64),
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_emoji_user (user_id),
+    INDEX idx_emoji_hash (user_id, file_hash)
+);
+
 -- ALTER TABLE group_member ADD CONSTRAINT fk_gm_group FOREIGN KEY (group_id) REFERENCES `group`(id);
 -- ALTER TABLE group_member ADD CONSTRAINT fk_gm_user FOREIGN KEY (user_id) REFERENCES user(id);
 -- ALTER TABLE file ADD CONSTRAINT fk_file_uploader FOREIGN KEY (uploader_id) REFERENCES user(id);

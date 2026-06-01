@@ -61,6 +61,7 @@
       @sendImage="onSendImage"
       @sendFile="onSendFile"
       @sendEmoji="onSendEmoji"
+      @sendImageUrl="onSendImageUrl"
     />
   </div>
 
@@ -83,6 +84,7 @@ import { useChatStore } from '../../stores/chat'
 import { useGroupStore } from '../../stores/groups'
 import { useContactStore } from '../../stores/contacts'
 import { fileApi } from '../../api/endpoints'
+import { MSG_TYPE } from '../../utils/constants'
 import { computed, ref, watch, nextTick } from 'vue'
 
 const chat = useChatStore()
@@ -143,6 +145,9 @@ async function onSendFile(file) {
 
 async function onSendEmoji(emoji) {
   await chat.sendMessage({ content: emoji, msgType: 4 })
+}
+async function onSendImageUrl({ url, fileId }) {
+  await chat.sendMessage({ content: url, msgType: MSG_TYPE.STICKER, fileId })
 }
 
 async function onDrop(e) {
