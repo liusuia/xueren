@@ -8,6 +8,7 @@ import com.xueren.repository.FavoriteRepository;
 import com.xueren.repository.MessageRepository;
 import com.xueren.security.AuthHolder;
 import com.xueren.service.MessageService;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -50,6 +51,7 @@ public class FavoriteController {
         return ApiResponse.ok(null);
     }
 
+    @Transactional
     @DeleteMapping("/{messageId}")
     public ApiResponse<Void> remove(@PathVariable Long messageId) {
         favoriteRepository.deleteByUserIdAndMessageId(AuthHolder.currentUserId(), messageId);

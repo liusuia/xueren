@@ -40,13 +40,11 @@ onMounted(async () => {
 })
 
 function previewText(m) {
-  if (!m.content) {
-    if (m.msgType === 2) return '[图片]'
-    if (m.msgType === 7) return '[表情]'
-    if (m.msgType === 8) return '[语音]'
-    if (m.msgType === 3) return '[文件]'
-    return '[消息]'
-  }
+  if (m.msgType === 2) return '[图片]'
+  if (m.msgType === 7) return '[表情]'
+  if (m.msgType === 8) return '[语音]'
+  if (m.msgType === 3) return '[文件]'
+  if (!m.content) return '[消息]'
   return m.content.length > 50 ? m.content.slice(0, 50) + '...' : m.content
 }
 
@@ -65,7 +63,10 @@ function jumpTo(m) {
 }
 
 async function onDelete(id) {
-  try { await favoriteApi.remove(id); items.value = items.value.filter(i => i.id !== id) } catch {}
+  try {
+    await favoriteApi.remove(id)
+    items.value = items.value.filter(i => i.id !== id)
+  } catch (e) { console.error('删除收藏失败', e) }
 }
 </script>
 
