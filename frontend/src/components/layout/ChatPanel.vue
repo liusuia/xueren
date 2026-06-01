@@ -132,9 +132,11 @@ const previewVisible = ref(false)
 const previewImages = ref([])
 const previewIndex = ref(0)
 function onPreview(msg) {
-  const all = chat.messages.filter(m => m.msgType === 2 || m.msgType === 7)
+  // 仅预览普通图片(msgType 2)，不包含表情包(msgType 7)
+  const all = chat.messages.filter(m => m.msgType === 2)
   previewImages.value = all
   previewIndex.value = all.findIndex(m => m.id === msg.id)
+  if (previewIndex.value < 0) previewIndex.value = 0
   previewVisible.value = true
 }
 
