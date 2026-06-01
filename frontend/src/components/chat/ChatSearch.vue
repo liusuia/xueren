@@ -65,13 +65,12 @@ function onInput() {
     searching.value = true
     selIdx.value = 0
     try {
-      // 拉取更多消息（200条）来做客户端搜索
-      const msgs = props.chatType === 1
-        ? await messageApi.singleHistory(props.targetId, 200)
-        : await messageApi.groupHistory(props.targetId, 200)
-      const qLower = q.toLowerCase()
-      results.value = msgs.filter(m =>
-        !m.isRecalled && (m.content || '').toLowerCase().includes(qLower)
+      const all = await messageApi.searchContent(q) || []
+      results.value = all.filter(m =>
+        m.chatType === props.chatType &&
+        (props.chatType === 1
+          ? (m.fromUserId === props.targetId || m.toUserId === props.targetId)
+          : m.groupId === props.targetId)
       )
     } catch { results.value = [] }
     searching.value = false
