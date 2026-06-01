@@ -39,9 +39,11 @@ import ContextMenu from '../common/ContextMenu.vue'
 import { useConversationStore } from '../../stores/conversations'
 import { useChatStore } from '../../stores/chat'
 import { useContextMenu } from '../../composables/useContextMenu'
+import { useConfirm } from '../../composables/useConfirm'
 
 const convStore = useConversationStore()
 const chatStore = useChatStore()
+const cfm = useConfirm()
 const ctx = useContextMenu()
 const ctxVisible = ref(false)
 const ctxPos = ref({ x: 0, y: 0 })
@@ -71,7 +73,9 @@ async function onCtxAction(item) {
   ctxVisible.value = false
   if (!ctxConv) return
   if (item.action === 'delete') {
-    await convStore.deleteConversation(ctxConv.id)
+    if (await cfm.info('确定删除该会话？')) {
+      await convStore.deleteConversation(ctxConv.id)
+    }
   } else if (item.action === 'read') {
     await convStore.markRead(ctxConv.targetType, ctxConv.targetId, ctxConv.lastMessageId)
   } else if (item.action === 'pin') {
