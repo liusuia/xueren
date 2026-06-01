@@ -1,7 +1,5 @@
 <template>
-  <div class="chat-panel" v-if="chat.currentConv" @dragover.prevent @drop.prevent="onDrop">
-    <div v-if="chatBg" class="cp-bg-blur" :style="{ backgroundImage: 'url(' + chatBg + ')' }"></div>
-    <div v-if="chatBg" class="cp-bg-main" :style="{ backgroundImage: 'url(' + chatBg + ')' }"></div>
+  <div class="chat-panel" v-if="chat.currentConv" :style="chatBg ? { backgroundImage: 'url(' + chatBg + ')', backgroundSize: 'cover', backgroundPosition: 'center', backgroundAttachment: 'fixed' } : {}" @dragover.prevent @drop.prevent="onDrop">
     <!-- 头部 -->
     <div class="cp-header">
       <!-- 移动端返回按钮 -->
@@ -221,23 +219,9 @@ async function onDrop(e) {
 <style scoped>
 .chat-panel {
   flex: 1; display: flex; flex-direction: column; height: 100%;
-  min-width: 0; position: relative; overflow: hidden;
+  background: var(--chat-bg, #1a1d23); min-width: 0;
+  position: relative; overflow: hidden;
 }
-.cp-bg-blur {
-  position: absolute; inset: 0; z-index: 0;
-  background-size: cover; background-position: center;
-  filter: blur(16px); opacity: 0.7;
-}
-.cp-bg-main {
-  position: absolute; inset: 0; z-index: 0;
-  background-size: contain; background-repeat: no-repeat; background-position: center;
-  opacity: 0.5;
-}
-/* 功能区在背景之上 */
-/* 所有功能区在背景之上 */
-.chat-panel > * { position: relative; z-index: 1; }
-.cp-header, .cp-reply-bar { background: var(--chat-bg, #1a1d23); }
-.ib-root { background: var(--chat-bg, #1a1d23); }
 .cp-header {
   display: flex; align-items: center; justify-content: space-between;
   padding: 12px 20px; border-bottom: 1px solid var(--border, #2e3038);
