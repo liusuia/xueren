@@ -226,12 +226,12 @@ async function onDrop(e) {
 .cp-bg-blur {
   position: absolute; inset: 0; z-index: 0;
   background-size: cover; background-position: center;
-  filter: blur(20px); opacity: 0.35; transform: scale(1.05);
+  filter: blur(16px); opacity: 0.7;
 }
 .cp-bg-main {
   position: absolute; inset: 0; z-index: 0;
   background-size: contain; background-repeat: no-repeat; background-position: center;
-  opacity: 0.15;
+  opacity: 0.5;
 }
 /* 功能区在背景之上 */
 /* 所有功能区在背景之上 */
