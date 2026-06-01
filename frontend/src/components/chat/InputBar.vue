@@ -157,7 +157,12 @@ function insertMention(name, userIds) {
   const before = val.slice(0, lastAt)
   const after = val.slice(cursorPos)
   text.value = before + '@' + name + ' ' + after
-  currentMentions.value.push(...userIds)
+  // @所有人：传所有成员 ID；@单个：传指定 ID
+  if (userIds.length === 0) {
+    currentMentions.value = props.members.map(m => m.userId)
+  } else {
+    currentMentions.value.push(...userIds)
+  }
   showMention.value = false
   nextTick(() => {
     inputRef.value?.focus()
