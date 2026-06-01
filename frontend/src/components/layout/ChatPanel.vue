@@ -226,14 +226,18 @@ async function onDrop(e) {
 .cp-bg-blur {
   position: absolute; inset: 0; z-index: 0;
   background-size: cover; background-position: center;
-  filter: blur(20px); opacity: 0.6; transform: scale(1.1);
+  filter: blur(20px); opacity: 0.35; transform: scale(1.05);
 }
 .cp-bg-main {
-  position: absolute; inset: 0; z-index: 1;
+  position: absolute; inset: 0; z-index: 0;
   background-size: contain; background-repeat: no-repeat; background-position: center;
+  opacity: 0.15;
 }
 /* 功能区在背景之上 */
-.cp-header, .cp-reply-bar, .ib-root { position: relative; z-index: 2; background: var(--chat-bg, #1a1d23); }
+/* 所有功能区在背景之上 */
+.chat-panel > * { position: relative; z-index: 1; }
+.cp-header, .cp-reply-bar { background: var(--chat-bg, #1a1d23); }
+.ib-root { background: var(--chat-bg, #1a1d23); }
 .cp-header {
   display: flex; align-items: center; justify-content: space-between;
   padding: 12px 20px; border-bottom: 1px solid var(--border, #2e3038);
