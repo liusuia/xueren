@@ -39,13 +39,14 @@
     <!-- 正常视图 -->
     <template v-else>
       <ConversationList v-if="ui.activeTab==='chat'" @select="$emit('selectConv',$event)" />
-      <ContactList v-else @select="$emit('selectConv',$event)" @addFriend="showAddFriend=true" @friendRequests="showFriendRequests=true" @createGroup="showCreateGroup=true" @joinGroup="showJoinGroup=true" @showFriendInfo="$emit('showFriendInfo',$event)" @showGroupInfo="$emit('showGroupInfo',$event)" @showBlockedList="showBlockedList=true" />
+      <ContactList v-else @select="$emit('selectConv',$event)" @addFriend="showAddFriend=true" @friendRequests="showFriendRequests=true" @createGroup="showCreateGroup=true" @joinGroup="showJoinGroup=true" @showFriendInfo="$emit('showFriendInfo',$event)" @showGroupInfo="$emit('showGroupInfo',$event)" @showBlockedList="showBlockedList=true" @showFavorites="showFavorites=true" />
     </template>
 
     <div v-if="showFriendRequests||showCreateGroup||showAddFriend||showJoinGroup" class="lp-overlay" @click="closeAll"></div>
     <FriendRequestsPanel v-if="showFriendRequests" @close="closeAll" :panelStyle="popStyle" />
     <JoinGroupDialog v-if="showJoinGroup" @close="closeAll" :panelStyle="popStyle" />
     <BlockedListPanel v-if="showBlockedList" @close="showBlockedList=false" />
+    <FavoriteList v-if="showFavorites" @close="showFavorites=false" />
     <CreateGroupDialog v-if="showCreateGroup" @close="closeAll" :panelStyle="popStyle" />
     <AddFriendDialog v-if="showAddFriend" @close="closeAll" :panelStyle="popStyle" />
   </div>
@@ -62,6 +63,7 @@ import ConversationList from '../conversations/ConversationList.vue'
 import ContactList from '../contacts/ContactList.vue'
 import BlockedListPanel from '../contacts/BlockedListPanel.vue'
 import JoinGroupDialog from '../contacts/JoinGroupDialog.vue'
+import FavoriteList from '../contacts/FavoriteList.vue'
 import FriendRequestsPanel from '../contacts/FriendRequestsPanel.vue'
 import CreateGroupDialog from '../groups/CreateGroupDialog.vue'
 import AddFriendDialog from '../contacts/AddFriendDialog.vue'
@@ -83,6 +85,7 @@ const showAddFriend = ref(false)
 const showFriendRequests = ref(false)
 const showBlockedList = ref(false)
 const showJoinGroup = ref(false)
+const showFavorites = ref(false)
 const showCreateGroup = ref(false)
 const showPlusMenu = ref(false)
 const popStyle = computed(() => ({ left:(ui.column2Width+64)+'px', top:'60px' }))

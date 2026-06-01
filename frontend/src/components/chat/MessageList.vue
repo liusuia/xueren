@@ -74,7 +74,7 @@ import ContextMenu from '../common/ContextMenu.vue'
 import { useChatStore } from '../../stores/chat'
 import { useConversationStore } from '../../stores/conversations'
 import { useAuthStore } from '../../stores/auth'
-import { messageApi } from '../../api/endpoints'
+import { messageApi, favoriteApi } from '../../api/endpoints'
 import { formatFullTime } from '../../utils/format'
 import http from '../../api/http'
 import { useNotification } from '../../composables/useNotification'
@@ -177,6 +177,10 @@ function onMsgCtx(e, msg) {
   if (!isRecalled && (msg.msgType === 2 || msg.msgType === 7) && msg.content) {
     items.push({ label: '添加到表情', action: 'addEmoji' })
   }
+  // 收藏
+  if (!isRecalled) {
+    items.push({ label: '收藏', action: 'favorite' })
+  }
   // 多选
   items.push({ label: '多选', action: 'multiSelect' })
   // 转发
@@ -235,6 +239,8 @@ async function onMsgCtxAction(item) {
     try {
       await chatStore.recallMessage(ctxMsg.id)
     } catch { /* 后端已校验 */ }
+  } else if (item.action === 'favorite') {
+    try { await favoriteApi.add(ctxMsg.id); success('已收藏') } catch (e) { showError('收藏失败') }
   } else if (item.action === 'reply') {
     chatStore.setReplyTo(ctxMsg)
   } else if (item.action === 'multiSelect') {

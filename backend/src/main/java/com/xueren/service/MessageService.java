@@ -286,7 +286,7 @@ public class MessageService {
     }
 
     /** 单条消息转换（send/recall 场景） */
-    private MessageVO toVO(Message message) {
+    public MessageVO toVO(Message message) {
         User fromUser = userRepository.findById(message.getFromUserId()).orElse(null);
         Map<Long, User> userMap = fromUser != null ? Map.of(fromUser.getId(), fromUser) : Map.of();
         StoredFile file = message.getFileId() != null ? storedFileRepository.findById(message.getFileId()).orElse(null) : null;

@@ -78,6 +78,12 @@ export const messageApi = {
   edit: (messageId, content) => http.put(`/messages/${messageId}`, { content })
 }
 
+export const favoriteApi = {
+  list: () => http.get('/favorites'),
+  add: (messageId) => http.post(`/favorites/${messageId}`),
+  remove: (messageId) => http.delete(`/favorites/${messageId}`)
+}
+
 // ==================== Conversation ====================
 export const convApi = {
   list: () => http.get('/conversations'),

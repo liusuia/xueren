@@ -24,6 +24,10 @@
         <span class="ctl-act-icon" style="background:#e74c3c"><svg viewBox="0 0 24 24" width="16" height="16" fill="#fff"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg></span>
         <span>黑名单</span>
       </button>
+      <button class="ctl-act-btn" @click="emit('showFavorites')">
+        <span class="ctl-act-icon" style="background:#f1c40f"><svg viewBox="0 0 24 24" width="16" height="16" fill="#fff"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg></span>
+        <span>收藏</span>
+      </button>
     </div>
 
     <!-- 群聊分组 -->
@@ -90,7 +94,7 @@ const groupStore = useGroupStore()
 const convStore = useConversationStore()
 const chatStore = useChatStore()
 const cfm = useConfirm()
-const emit = defineEmits(['select', 'addFriend', 'friendRequests', 'createGroup', 'showFriendInfo', 'showGroupInfo', 'showBlockedList', 'joinGroup'])
+const emit = defineEmits(['select', 'addFriend', 'friendRequests', 'createGroup', 'showFriendInfo', 'showGroupInfo', 'showBlockedList', 'joinGroup', 'showFavorites'])
 
 const ctxVisible = ref(false)
 const ctxPos = ref({ x: 0, y: 0 })
