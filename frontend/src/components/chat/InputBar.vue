@@ -113,9 +113,43 @@ async function sendLocation() {
       navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 10000 })
     })
     const { latitude, longitude } = pos.coords
-    const text = `[位置]\n${latitude.toFixed(6)}, ${longitude.toFixed(6)}\nhttps://map.baidu.com/@${longitude},${latitude},17z`
-    emit('sendText', text, [])
-  } catch (e) { /* 定位失败或用户拒绝 */ }
+    const zoom = 14
+    const n = Math.pow(2, zoom)
+    const latRad = latitude * Math.PI / 180
+    const xTile = Math.floor((longitude + 180) / 360 * n)
+    const yTile = Math.floor((1 - Math.log(Math.tan(latRad) + 1 / Math.cos(latRad)) / Math.PI) / 2 * n)
+    // 4 张瓦片拼成 2x2 静态地图
+    const tiles = [
+      `https://tile.openstreetmap.org/${zoom}/${xTile}/${yTile}.png`,
+      `https://tile.openstreetmap.org/${zoom}/${xTile + 1}/${yTile}.png`,
+      `https://tile.openstreetmap.org/${zoom}/${xTile}/${yTile + 1}.png`,
+      `https://tile.openstreetmap.org/${zoom}/${xTile + 1}/${yTile + 1}.png`
+    ]
+    // 合成 2x2 canvas 静态地图
+    const canvas = document.createElement('canvas'); canvas.width = 512; canvas.height = 512
+    const ctx = canvas.getContext('2d')
+    const imgs = await Promise.all(tiles.map(url => new Promise((resolve, reject) => {
+      const img = new Image(); img.crossOrigin = 'anonymous'
+      img.onload = () => resolve(img); img.onerror = reject; img.src = url
+    })))
+    ctx.drawImage(imgs[0], 0, 0, 256, 256)
+    ctx.drawImage(imgs[1], 256, 0, 256, 256)
+    ctx.drawImage(imgs[2], 0, 256, 256, 256)
+    ctx.drawImage(imgs[3], 256, 256, 256, 256)
+    // 画标记点
+    ctx.beginPath(); ctx.arc(256, 256, 10, 0, Math.PI * 2)
+    ctx.fillStyle = '#e74c3c'; ctx.fill()
+    ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.stroke()
+    const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'))
+    const form = new FormData(); form.append('file', blob, 'location.png')
+    const res = await http.post('/files/upload', form)
+    const fileVO = res?.data || res
+    if (fileVO) {
+      const link = `https://map.baidu.com/@${longitude},${latitude},17z`
+      const content = JSON.stringify({ lat: latitude.toFixed(6), lng: longitude.toFixed(6), link, map: fileVO.url })
+      emit('sendText', content, [])
+    }
+  } catch (e) { /* 定位失败 */ }
 }
 
 const text = ref('')
