@@ -27,8 +27,8 @@
         <button v-if="chat.currentConv.targetType === 1" class="cp-h-btn" @click="$emit('friendInfo', chat.currentConv.targetId)" title="聊天信息">
           <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></svg>
         </button>
-        <button class="cp-h-btn" @click="triggerBg" title="设置背景">
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>
+        <button class="cp-h-btn" @click="triggerBg" @contextmenu.prevent="resetBg" :title="chatBg ? '右键恢复默认背景' : '设置背景'">
+          <svg viewBox="0 0 24 24" width="18" height="18" :fill="chatBg ? '#f7931e' : 'currentColor'"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>
         </button>
         <input type="file" ref="bgInput" accept="image/*" @change="onBgChange" style="display:none" />
         <button class="cp-h-btn" @click="$emit('close')" title="关闭">
@@ -109,6 +109,7 @@ function getBgKey() {
 }
 function loadBg() { chatBg.value = localStorage.getItem(getBgKey()) || '' }
 function triggerBg() { bgInput.value?.click() }
+function resetBg() { localStorage.removeItem(getBgKey()); chatBg.value = '' }
 function onBgChange(e) {
   const file = e.target.files[0]
   if (!file) return
