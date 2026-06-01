@@ -137,7 +137,7 @@ export const useChatStore = defineStore('chat', () => {
     return sendMessage({ content: card, msgType: 6 })
   }
 
-  async function sendMessage({ content, msgType, fileId, mentionedUserIds }) {
+  async function sendMessage({ content, msgType, fileId, mentionedUserIds, _voiceDuration }) {
     if (!currentConv.value) return
     const { targetType, targetId } = currentConv.value
     const auth = useAuthStore()
@@ -168,7 +168,8 @@ export const useChatStore = defineStore('chat', () => {
       fileId: fileId || null,
       isRecalled: 0,
       createdAt: new Date().toISOString(),
-      _optimistic: true
+      _optimistic: true,
+      _voiceDuration: _voiceDuration || 0
     }
     messages.value.push(optimistic)
 

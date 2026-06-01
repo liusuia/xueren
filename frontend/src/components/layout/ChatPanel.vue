@@ -62,6 +62,7 @@
       @sendFile="onSendFile"
       @sendEmoji="onSendEmoji"
       @sendImageUrl="onSendImageUrl"
+      @sendVoice="onSendVoice"
     />
   </div>
 
@@ -85,6 +86,7 @@ import { useGroupStore } from '../../stores/groups'
 import { useContactStore } from '../../stores/contacts'
 import { fileApi } from '../../api/endpoints'
 import { MSG_TYPE } from '../../utils/constants'
+import http from '../../api/http'
 import { computed, ref, watch, nextTick } from 'vue'
 
 const chat = useChatStore()
@@ -148,6 +150,15 @@ async function onSendEmoji(emoji) {
 }
 async function onSendImageUrl({ url, fileId }) {
   await chat.sendMessage({ content: url, msgType: MSG_TYPE.STICKER, fileId })
+}
+async function onSendVoice({ blob, duration }) {
+  const form = new FormData()
+  form.append('file', blob, 'voice.webm')
+  const res = await http.post('/files/upload', form)
+  const fileVO = res?.data || res
+  if (fileVO) {
+    await chat.sendMessage({ content: fileVO.url, msgType: MSG_TYPE.VOICE, fileId: fileVO.id, _voiceDuration: duration })
+  }
 }
 
 async function onDrop(e) {

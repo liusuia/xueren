@@ -268,6 +268,7 @@ public class MessageService {
             case 3 -> "[文件]";
             case 4 -> "[表情]";
             case 7 -> "[表情]";
+            case 8 -> "[语音]";
             default -> "[消息]";
         };
     }

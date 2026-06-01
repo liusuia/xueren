@@ -16,6 +16,9 @@
 
     <!-- 工具栏 -->
     <div class="ib-tools">
+      <button class="ib-tool-btn" :class="{ recording: isRecording }" @pointerdown="startRecord" @pointerup="stopRecord" @pointerleave="cancelRecord" title="语音">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg>
+      </button>
       <button class="ib-tool-btn" @click="showEmoji = !showEmoji" title="表情">
         <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm3.5-9c.83 0 1.5-.67 1.5-1.5S16.33 8 15.5 8 14 8.67 14 9.5s.67 1.5 1.5 1.5zm-7 0c.83 0 1.5-.67 1.5-1.5S9.33 8 8.5 8 7 8.67 7 9.5 7.67 11 8.5 11zm3.5 6.5c2.33 0 4.31-1.46 5.11-3.5H6.89c.8 2.04 2.78 3.5 5.11 3.5z"/></svg>
       </button>
@@ -59,7 +62,47 @@ const props = defineProps({
   isGroup: { type: Boolean, default: false },
   members: { type: Array, default: () => [] }
 })
-const emit = defineEmits(['sendText', 'sendImage', 'sendFile', 'sendEmoji', 'sendImageUrl'])
+const emit = defineEmits(['sendText', 'sendImage', 'sendFile', 'sendEmoji', 'sendImageUrl', 'sendVoice'])
+
+// 录音
+const isRecording = ref(false)
+let mediaRecorder = null
+let recordChunks = []
+let recordStartTime = 0
+
+async function startRecord(e) {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+    mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' })
+    recordChunks = []
+    mediaRecorder.ondataavailable = (e) => recordChunks.push(e.data)
+    mediaRecorder.onstop = async () => {
+      stream.getTracks().forEach(t => t.stop())
+      if (!recordChunks.length) return
+      const blob = new Blob(recordChunks, { type: 'audio/webm' })
+      const duration = Math.round((Date.now() - recordStartTime) / 1000)
+      emit('sendVoice', { blob, duration })
+    }
+    recordStartTime = Date.now()
+    mediaRecorder.start()
+    isRecording.value = true
+  } catch (e) { /* 麦克风不可用 */ }
+}
+
+function stopRecord() {
+  if (mediaRecorder && isRecording.value) {
+    mediaRecorder.stop()
+    isRecording.value = false
+  }
+}
+
+function cancelRecord() {
+  if (mediaRecorder && isRecording.value) {
+    mediaRecorder.stop()
+    recordChunks = []
+    isRecording.value = false
+  }
+}
 
 const text = ref('')
 const showEmoji = ref(false)
@@ -268,6 +311,8 @@ function onFileChange(e) { const f = e.target.files[0]; if (f) { emit('sendFile'
   border-radius: 4px; cursor: pointer; transition: all 0.15s;
 }
 .ib-tool-btn:hover { background: var(--bg-hover, rgba(255,255,255,0.06)); color: var(--text-secondary, #bbb); }
+.ib-tool-btn.recording { color: #e74c3c; animation: ib-pulse 1s infinite; }
+@keyframes ib-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
 .ib-input-area { display: flex; align-items: flex-end; gap: 10px; padding: 8px 16px 12px; }
 .ib-textarea {
   flex: 1; border: none; outline: none; background: transparent;
