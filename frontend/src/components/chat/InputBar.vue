@@ -65,7 +65,7 @@ const props = defineProps({
   isGroup: { type: Boolean, default: false },
   members: { type: Array, default: () => [] }
 })
-const emit = defineEmits(['sendText', 'sendImage', 'sendFile', 'sendEmoji', 'sendImageUrl', 'sendVoice', 'sendLocation'])
+const emit = defineEmits(['sendText', 'sendImage', 'sendFile', 'sendEmoji', 'sendImageUrl', 'sendVoice'])
 
 // 录音
 const isRecording = ref(false)
@@ -113,10 +113,9 @@ async function sendLocation() {
       navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 10000 })
     })
     const { latitude, longitude } = pos.coords
-    // 用 OSM 静态地图 API
-    const url = `https://staticmap.openstreetmap.de/staticmap.php?center=${latitude},${longitude}&zoom=15&size=400x300&markers=${latitude},${longitude},red-pushpin`
-    emit('sendLocation', { url, latitude, longitude })
-  } catch (e) { /* 定位失败 */ }
+    const text = `[位置]\n${latitude.toFixed(6)}, ${longitude.toFixed(6)}\nhttps://map.baidu.com/@${longitude},${latitude},17z`
+    emit('sendText', text, [])
+  } catch (e) { /* 定位失败或用户拒绝 */ }
 }
 
 const text = ref('')

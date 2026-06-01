@@ -91,6 +91,9 @@ public class UserService {
         if (request.getBirthday() != null) {
             user.setBirthday(request.getBirthday());
         }
+        if (request.getRegion() != null) {
+            user.setRegion(request.getRegion());
+        }
         if (request.getNewPassword() != null && !request.getNewPassword().isBlank()) {
             if (request.getOldPassword() == null || !passwordEncoder.matches(request.getOldPassword(), user.getPassword())) {
                 throw new BusinessException("原密码错误");

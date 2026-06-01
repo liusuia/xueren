@@ -9,6 +9,7 @@ public class UpdateProfileRequest {
     private String email;
     private String phone;
     private String birthday;
+    private String region;
     private String oldPassword;
     private String newPassword;
 }

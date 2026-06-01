@@ -71,7 +71,6 @@
       @sendEmoji="onSendEmoji"
       @sendImageUrl="onSendImageUrl"
       @sendVoice="onSendVoice"
-      @sendLocation="onSendLocation"
     />
   </div>
 
