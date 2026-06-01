@@ -1,5 +1,5 @@
 <template>
-  <div class="chat-panel" v-if="chat.currentConv" :style="chatBg ? { backgroundImage: 'url(' + chatBg + ')', backgroundSize: 'cover', backgroundPosition: 'center' } : {}" @dragover.prevent @drop.prevent="onDrop">
+  <div class="chat-panel" v-if="chat.currentConv" :style="chatBg ? { backgroundImage: 'url(' + chatBg + ')', backgroundSize: 'contain', backgroundRepeat: 'no-repeat', backgroundPosition: 'center', backgroundColor: 'var(--chat-bg, #1a1d23)' } : {}" @dragover.prevent @drop.prevent="onDrop">
     <!-- 头部 -->
     <div class="cp-header">
       <!-- 移动端返回按钮 -->
