@@ -47,8 +47,8 @@
             <input v-model="form.phone" class="pp-inp-text" placeholder="未设置" />
           </div>
           <div class="pp-info-item">
-            <span class="pp-info-label">生日</span>
-            <input v-model="form.birthday" class="pp-inp-text" placeholder="YYYY-MM-DD" />
+            <span class="pp-info-label">地区</span>
+            <input v-model="form.region" class="pp-inp-text" placeholder="未设置" />
           </div>
         </div>
 
@@ -109,7 +109,7 @@ const form = reactive({
   nickname: auth.user?.nickname || '',
   email: auth.user?.email || '',
   phone: auth.user?.phone || '',
-  birthday: auth.user?.birthday || ''
+  region: auth.user?.region || ''
 })
 
 const popStyle = { position: 'fixed', left: '64px', top: '16px' }
@@ -134,7 +134,7 @@ async function onSave() {
   if (!form.nickname.trim()) { showError('昵称不能为空'); return }
   saving.value = true
   try {
-    await auth.updateProfile({ nickname: form.nickname, phone: form.phone, birthday: form.birthday })
+    await auth.updateProfile({ nickname: form.nickname, phone: form.phone, region: form.region })
     auth.user.nickname = form.nickname
     success('已保存')
     show.value = false
