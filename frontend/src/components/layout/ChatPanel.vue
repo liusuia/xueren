@@ -1,5 +1,5 @@
 <template>
-  <div class="chat-panel" v-if="chat.currentConv" @dragover.prevent @drop.prevent="onDrop">
+  <div class="chat-panel" v-if="chat.currentConv" :style="chatBg ? { backgroundImage: 'url(' + chatBg + ')', backgroundSize: 'cover', backgroundPosition: 'center' } : {}" @dragover.prevent @drop.prevent="onDrop">
     <!-- 头部 -->
     <div class="cp-header">
       <!-- 移动端返回按钮 -->
@@ -27,6 +27,10 @@
         <button v-if="chat.currentConv.targetType === 1" class="cp-h-btn" @click="$emit('friendInfo', chat.currentConv.targetId)" title="聊天信息">
           <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></svg>
         </button>
+        <button class="cp-h-btn" @click="triggerBg" title="设置背景">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>
+        </button>
+        <input type="file" ref="bgInput" accept="image/*" @change="onBgChange" style="display:none" />
         <button class="cp-h-btn" @click="$emit('close')" title="关闭">
           <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
         </button>
@@ -90,12 +94,31 @@ import { useContactStore } from '../../stores/contacts'
 import { fileApi } from '../../api/endpoints'
 import { MSG_TYPE } from '../../utils/constants'
 import http from '../../api/http'
-import { computed, ref, watch, nextTick } from 'vue'
+import { computed, ref, watch, nextTick, onMounted } from 'vue'
 
 const chat = useChatStore()
 const groupStore = useGroupStore()
 const contactStore = useContactStore()
 const inputBarRef = ref(null)
+const bgInput = ref(null)
+const chatBg = ref('')
+
+function getBgKey() {
+  const cv = chat.currentConv
+  return cv ? 'xr-bg-' + cv.targetType + '-' + cv.targetId : ''
+}
+function loadBg() { chatBg.value = localStorage.getItem(getBgKey()) || '' }
+function triggerBg() { bgInput.value?.click() }
+function onBgChange(e) {
+  const file = e.target.files[0]
+  if (!file) return
+  const reader = new FileReader()
+  reader.onload = () => { localStorage.setItem(getBgKey(), reader.result); chatBg.value = reader.result }
+  reader.readAsDataURL(file)
+  e.target.value = ''
+}
+watch(() => chat.currentConv?.targetId, loadBg)
+onMounted(loadBg)
 
 // 点击回复后自动聚焦输入框
 watch(() => chat.replyTo, (val) => {
