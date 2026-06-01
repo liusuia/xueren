@@ -39,14 +39,14 @@
     <!-- 正常视图 -->
     <template v-else>
       <ConversationList v-if="ui.activeTab==='chat'" @select="$emit('selectConv',$event)" />
-      <ContactList v-else @select="$emit('selectConv',$event)" @addFriend="showAddFriend=true" @friendRequests="showFriendRequests=true" @createGroup="showCreateGroup=true" @joinGroup="showJoinGroup=true" @showFriendInfo="$emit('showFriendInfo',$event)" @showGroupInfo="$emit('showGroupInfo',$event)" @showBlockedList="showBlockedList=true" @showFavorites="showFavorites=true" />
+      <ContactList v-else-if="ui.activeTab==='contacts'" @select="$emit('selectConv',$event)" @addFriend="showAddFriend=true" @friendRequests="showFriendRequests=true" @createGroup="showCreateGroup=true" @joinGroup="showJoinGroup=true" @showFriendInfo="$emit('showFriendInfo',$event)" @showGroupInfo="$emit('showGroupInfo',$event)" @showBlockedList="showBlockedList=true" />
+      <FavoriteList v-else-if="ui.activeTab==='favorites'" @close="ui.setActiveTab('chat')" />
     </template>
 
     <div v-if="showFriendRequests||showCreateGroup||showAddFriend||showJoinGroup" class="lp-overlay" @click="closeAll"></div>
     <FriendRequestsPanel v-if="showFriendRequests" @close="closeAll" :panelStyle="popStyle" />
     <JoinGroupDialog v-if="showJoinGroup" @close="closeAll" :panelStyle="popStyle" />
     <BlockedListPanel v-if="showBlockedList" @close="showBlockedList=false" />
-    <FavoriteList v-if="showFavorites" @close="showFavorites=false" />
     <CreateGroupDialog v-if="showCreateGroup" @close="closeAll" :panelStyle="popStyle" />
     <AddFriendDialog v-if="showAddFriend" @close="closeAll" :panelStyle="popStyle" />
   </div>
@@ -85,7 +85,6 @@ const showAddFriend = ref(false)
 const showFriendRequests = ref(false)
 const showBlockedList = ref(false)
 const showJoinGroup = ref(false)
-const showFavorites = ref(false)
 const showCreateGroup = ref(false)
 const showPlusMenu = ref(false)
 const popStyle = computed(() => ({ left:(ui.column2Width+64)+'px', top:'60px' }))

@@ -15,6 +15,9 @@
         <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
         <span v-if="pendingCount > 0" class="nav-badge nav-badge-friend">{{ pendingCount > 99 ? '99+' : pendingCount }}</span>
       </button>
+      <button class="nav-btn" :class="{ active: ui.activeTab === 'favorites' }" @click="ui.setActiveTab('favorites')" title="收藏">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
+      </button>
     </div>
 
     <!-- 底部 -->

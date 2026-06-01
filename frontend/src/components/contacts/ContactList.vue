@@ -94,7 +94,7 @@ const groupStore = useGroupStore()
 const convStore = useConversationStore()
 const chatStore = useChatStore()
 const cfm = useConfirm()
-const emit = defineEmits(['select', 'addFriend', 'friendRequests', 'createGroup', 'showFriendInfo', 'showGroupInfo', 'showBlockedList', 'joinGroup', 'showFavorites'])
+const emit = defineEmits(['select', 'addFriend', 'friendRequests', 'createGroup', 'showFriendInfo', 'showGroupInfo', 'showBlockedList', 'joinGroup'])
 
 const ctxVisible = ref(false)
 const ctxPos = ref({ x: 0, y: 0 })
