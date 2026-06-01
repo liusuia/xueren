@@ -131,14 +131,9 @@ const emit = defineEmits(['close', 'groupInfo', 'userInfo', 'friendInfo'])
 const previewVisible = ref(false)
 const previewImages = ref([])
 const previewIndex = ref(0)
-function onPreview(msg) {
-  const all = chat.messages.filter(m => m.msgType === 2)
-  previewImages.value = all
-  // 先用引用匹配，再用 id 匹配
-  let idx = all.indexOf(msg)
-  if (idx < 0) idx = all.findIndex(m => m.id === msg.id)
-  if (idx < 0) idx = 0
-  previewIndex.value = idx
+function onPreview({ images, index }) {
+  previewImages.value = images
+  previewIndex.value = index
   previewVisible.value = true
 }
 
