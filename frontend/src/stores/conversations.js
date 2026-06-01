@@ -140,6 +140,7 @@ export const useConversationStore = defineStore('conversations', () => {
     if (msg.msgType === 2) content = '[图片]'
     else if (msg.msgType === 7) content = '[表情]'
     else if (msg.msgType === 8) content = '[语音]'
+    else if (msg.msgType === 9) content = '[位置]'
     else if (msg.msgType === 3) content = '[文件]'
     else if (msg.msgType === 5) content = '[系统消息]'
     else content = msg.content || ''

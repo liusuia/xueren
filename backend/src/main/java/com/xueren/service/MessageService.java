@@ -269,12 +269,13 @@ public class MessageService {
             case 4 -> "[表情]";
             case 7 -> "[表情]";
             case 8 -> "[语音]";
+            case 9 -> "[位置]";
             default -> "[消息]";
         };
     }
 
     private String resolveContent(SendMessageRequest request) {
-        if (request.getMsgType() == Constants.MSG_TEXT || request.getMsgType() == Constants.MSG_EMOJI || request.getMsgType() == Constants.MSG_CONTACT_CARD) {
+        if (request.getMsgType() == Constants.MSG_TEXT || request.getMsgType() == Constants.MSG_EMOJI || request.getMsgType() == Constants.MSG_CONTACT_CARD || request.getMsgType() == Constants.MSG_LOCATION) {
             if (request.getContent() == null || request.getContent().isBlank()) {
                 throw new BusinessException("消息内容不能为空");
             }

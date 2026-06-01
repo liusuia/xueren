@@ -65,7 +65,7 @@ const props = defineProps({
   isGroup: { type: Boolean, default: false },
   members: { type: Array, default: () => [] }
 })
-const emit = defineEmits(['sendText', 'sendImage', 'sendFile', 'sendEmoji', 'sendImageUrl', 'sendVoice'])
+const emit = defineEmits(['sendText', 'sendImage', 'sendFile', 'sendEmoji', 'sendImageUrl', 'sendVoice', 'sendLocation'])
 
 // 录音
 const isRecording = ref(false)
@@ -147,7 +147,7 @@ async function sendLocation() {
     if (fileVO) {
       const link = `https://map.baidu.com/@${longitude},${latitude},17z`
       const content = JSON.stringify({ lat: latitude.toFixed(6), lng: longitude.toFixed(6), link, map: fileVO.url })
-      emit('sendText', content, [])
+      emit('sendLocation', content)
     }
   } catch (e) { /* 定位失败 */ }
 }

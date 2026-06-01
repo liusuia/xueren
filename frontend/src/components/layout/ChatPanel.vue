@@ -69,6 +69,7 @@
       @sendEmoji="onSendEmoji"
       @sendImageUrl="onSendImageUrl"
       @sendVoice="onSendVoice"
+      @sendLocation="onSendLocation"
     />
   </div>
 
@@ -196,8 +197,8 @@ async function onSendVoice({ blob, duration }) {
     await chat.sendMessage({ content: fileVO.url, msgType: MSG_TYPE.VOICE, fileId: fileVO.id, _voiceDuration: duration })
   }
 }
-async function onSendLocation({ url, latitude, longitude }) {
-  await chat.sendMessage({ content: url, msgType: MSG_TYPE.IMAGE, _location: { lat: latitude, lon: longitude } })
+async function onSendLocation(content) {
+  await chat.sendMessage({ content, msgType: MSG_TYPE.LOCATION })
 }
 
 async function onDrop(e) {
