@@ -7,10 +7,11 @@
           <div class="mp-nav" @mousedown="onDragStart">
             <button class="mp-nav-btn" @click="goBack">{{ viewing ? '← 返回' : '← 关闭' }}</button>
             <span class="mp-nav-title">{{ viewing ? (viewName+'的朋友圈') : '朋友圈' }}</span>
-            <button class="mp-nav-btn" @click="refresh" :disabled="refreshing">{{ refreshing ? '↻' : '↻' }}</button>
+            <button v-if="!viewing || viewId===auth.user?.id" class="mp-nav-btn" @click="showPost=true" title="发动态">📷</button>
+            <button class="mp-nav-btn" @click="refresh" :disabled="refreshing">↻</button>
           </div>
           <!-- 封面 -->
-          <div class="mp-cover" @click="!viewing && $emit('viewProfile')">
+          <div class="mp-cover" @click="!viewing && goUser({userId:auth.user?.id,userName:auth.user?.nickname||auth.user?.username})">
             <img v-if="coverUrl" :src="coverUrl" class="mp-cover-img" />
             <button class="mp-cover-btn" @click.stop="triggerCover" title="更换封面">📷 更换封面</button>
             <div class="mp-me" v-if="!viewing">
