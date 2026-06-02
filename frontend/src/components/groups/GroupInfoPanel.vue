@@ -19,7 +19,10 @@
               <input type="file" ref="groupAvInput" accept="image/*" @change="onGroupAvatarChange" style="display:none" />
               <div v-if="!editingName" class="gip-name" :class="{ editable: canEditName }" @click="startEditName">{{ groupStore.currentGroup.name }}</div>
               <input v-else ref="nameInputRef" class="gip-inp gip-name-input" :value="editNameVal" @blur="saveName" @keydown.enter="$event.target.blur()" @keydown.escape="editingName=false" />
-              <div class="gip-code" v-if="groupStore.currentGroup.groupCode">群号: {{ groupStore.currentGroup.groupCode }}</div>
+              <div class="gip-code" v-if="groupStore.currentGroup.groupCode">
+                群号: {{ groupStore.currentGroup.groupCode }}
+                <button class="gip-copy-btn" @click="copyGroupCode">复制</button>
+              </div>
             </div>
 
             <!-- 群公告 -->
@@ -209,6 +212,9 @@ const editingNotice = ref(false)
 const noticeText = ref('')
 const noticeInputRef = ref(null)
 const groupAvInput = ref(null)
+function copyGroupCode() {
+  navigator.clipboard.writeText(groupStore.currentGroup.groupCode).then(() => success('已复制')).catch(() => {})
+}
 function triggerGroupAvatar() { if (canEditName.value) groupAvInput.value?.click() }
 async function onGroupAvatarChange(e) {
   const file = e.target.files[0]; if (!file) return
@@ -373,7 +379,9 @@ async function onDismiss() { if (await cfm.danger('确定解散群聊？此操�
 .gip-name { font-size: 17px; font-weight: 600; color: var(--text-primary, #e8e8ea); margin-top: 8px; }
 .gip-name.editable { cursor: pointer; border-bottom: 1px dashed transparent; }
 .gip-name.editable:hover { border-bottom-color: var(--accent, #f7931e); }
-.gip-code { font-size: 12px; color: var(--text-muted, #999); margin-top: 4px; user-select: all; }
+.gip-code { font-size: 12px; color: var(--text-muted, #999); margin-top: 4px; user-select: all; display: flex; align-items: center; gap: 6px; }
+.gip-copy-btn { background: none; border: 1px solid var(--border, #3a3c44); color: var(--text-muted, #888); font-size: 10px; padding: 1px 6px; border-radius: 3px; cursor: pointer; }
+.gip-copy-btn:hover { color: var(--accent, #f7931e); border-color: var(--accent, #f7931e); }
 .gip-avatar-wrap { position: relative; cursor: pointer; }
 .gip-avatar-wrap:hover { opacity: 0.85; }
 .gip-avatar-cam { position: absolute; bottom: 0; right: 0; width: 22px; height: 22px; border-radius: 50%; background: var(--bg-input, #3a3c44); font-size: 12px; display: flex; align-items: center; justify-content: center; }
