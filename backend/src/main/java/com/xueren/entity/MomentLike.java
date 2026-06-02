@@ -13,4 +13,6 @@ public class MomentLike {
     private Long momentId;
     @Column(name = "user_id", nullable = false)
     private Long userId;
+    @Column(name = "created_at", insertable = false, updatable = false)
+    private java.time.LocalDateTime createdAt;
 }

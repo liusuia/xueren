@@ -26,7 +26,7 @@
           </div>
           <!-- 时间线 -->
           <div class="mp-body">
-            <div v-if="!viewing || viewId===auth.user?.id" class="mp-post-card" @click="showPost=true">
+            <div v-if="viewId===auth.user?.id" class="mp-post-card" @click="showPost=true">
               <Avatar :src="auth.user?.avatar" :name="auth.user?.nickname||auth.user?.username" :size="36" />
               <span class="mp-post-card-text">这一刻的想法...</span>
               <span class="mp-post-card-cam">📷</span>
