@@ -157,9 +157,11 @@ function onMsgCtx(e, msg) {
     items.push({ label: '收藏', action: 'favorite' })
   }
   // 多选
-  items.push({ label: '多选', action: 'multiSelect' })
-  // 转发
-  if (!isRecalled) {
+  if (!chatStore.multiSelect) {
+    items.push({ label: '多选', action: 'multiSelect' })
+  }
+  // 转发（多选模式下用底栏转发按钮）
+  if (!isRecalled && !chatStore.multiSelect) {
     items.push({ label: '转发', action: 'forward' })
   }
   // 引用回复（任何非撤回消息都可回复）
