@@ -1,7 +1,7 @@
 <template>
   <div class="mb-root" :class="[msgTypeClass, { self: isSelf, optimistic: msg._optimistic, mentioned: isMentioned }]">
     <!-- 引用消息 -->
-    <div v-if="msg.replyToId" class="mb-reply">
+    <div v-if="msg.replyToId" class="mb-reply" @click.stop="chat.jumpMsgId = msg.replyToId">
       <span class="mb-reply-preview">{{ msg.replyToPreview || '[消息]' }}</span>
     </div>
     <!-- 编辑模式 -->
