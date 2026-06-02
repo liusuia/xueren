@@ -16,6 +16,6 @@ public class Moment {
     private String content;
     @Column(length = 2000)
     private String images; // JSON array of URLs
-    @Column(name = "created_at", insertable = false, updatable = false)
+    @Column(name = "created_at")
     private LocalDateTime createdAt;
 }

@@ -78,8 +78,8 @@ public class MomentController {
         Moment m = new Moment(); m.setUserId(AuthHolder.currentUserId());
         m.setContent(body.getOrDefault("content", ""));
         m.setImages(body.getOrDefault("images", "[]"));
-        momentRepo.saveAndFlush(m);
-        em.refresh(m); // 从数据库重新加载以获取 generated createdAt
+        m.setCreatedAt(java.time.LocalDateTime.now()); // 直接设置，不依赖DB default
+        momentRepo.save(m);
         return ApiResponse.ok(m);
     }
 
