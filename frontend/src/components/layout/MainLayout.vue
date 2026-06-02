@@ -46,7 +46,7 @@
 
     <!-- 全局确认弹窗 -->
     <ConfirmDialog v-model="cfm.visible.value" v-bind="cfm.opts.value" @confirm="cfm.confirm" @cancel="cfm.cancel" />
-    <MomentsPage :visible="showMoments" @close="closeMoments" @viewUser="onShowUserInfo" />
+    <MomentsPage :visible="showMoments" @close="closeMoments" @viewUser="onShowUserInfo" @viewProfile="showProfile=true" />
   </div>
 </template>
 

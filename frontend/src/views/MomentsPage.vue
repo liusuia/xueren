@@ -10,8 +10,9 @@
             <button class="mp-nav-btn" @click="refresh" :disabled="refreshing">{{ refreshing ? '↻' : '↻' }}</button>
           </div>
           <!-- 封面 -->
-          <div class="mp-cover" @click="!viewing && triggerCover()">
+          <div class="mp-cover" @click="!viewing && $emit('viewProfile')">
             <img v-if="coverUrl" :src="coverUrl" class="mp-cover-img" />
+            <button class="mp-cover-btn" @click.stop="triggerCover" title="更换封面">📷 更换封面</button>
             <div class="mp-me" v-if="!viewing">
               <div class="mp-me-name">{{ auth.user?.nickname || auth.user?.username }}</div>
               <Avatar :src="auth.user?.avatar" :name="auth.user?.nickname || auth.user?.username" :size="60" class="mp-me-av" />
@@ -75,7 +76,7 @@ import http from '../api/http'
 import { useAuthStore } from '../stores/auth'
 
 defineProps({ visible: Boolean })
-const emit = defineEmits(['close'])
+const emit = defineEmits(['close', 'viewProfile'])
 const auth = useAuthStore()
 const items = ref([])
 const loading = ref(false)
@@ -129,6 +130,8 @@ async function doPost(){ if(!postText.value.trim()&&!postImgs.value.length)retur
 .mp-nav-title{ font-size:16px;font-weight:600;color:#fff; }
 .mp-cover{ height:200px;background:linear-gradient(135deg,#4a4a4a,#2a2a2a);position:relative;flex-shrink:0;cursor:pointer;overflow:hidden; }
 .mp-cover-img{ width:100%;height:100%;object-fit:cover;position:absolute;inset:0; }
+.mp-cover-btn{ position:absolute;top:10px;right:10px;background:rgba(0,0,0,0.4);color:#fff;border:none;padding:4px 10px;border-radius:4px;font-size:12px;cursor:pointer;z-index:1;transition:background 0.15s; }
+.mp-cover-btn:hover{ background:rgba(0,0,0,0.6); }
 .mp-me{ position:absolute;bottom:16px;right:20px;display:flex;align-items:center;gap:10px; }
 .mp-me-name{ font-size:15px;font-weight:600;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,0.5); }
 .mp-me-av{ border:2px solid rgba(255,255,255,0.25);border-radius:8px; }
