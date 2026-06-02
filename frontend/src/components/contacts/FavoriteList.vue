@@ -1,7 +1,7 @@
 <template>
   <div class="fav-panel">
     <div class="fav-hd">
-      <span>收藏</span>
+      <span>收藏 ({{ items.length }})</span>
     </div>
     <div class="fav-list">
       <LoadingSpinner :visible="loading" />
