@@ -215,15 +215,18 @@ const groupAvInput = ref(null)
 function copyGroupCode() {
   navigator.clipboard.writeText(groupStore.currentGroup.groupCode).then(() => success('已复制')).catch(() => {})
 }
-function triggerGroupAvatar() { console.log('trigger avatar', canEditAvatar.value, groupAvInput.value); if (canEditAvatar.value) groupAvInput.value?.click(); else error('仅群主可修改') }
+function triggerGroupAvatar() { if (canEditAvatar.value) groupAvInput.value?.click(); else error('仅群主可修改') }
 async function onGroupAvatarChange(e) {
   const file = e.target.files[0]; if (!file) return
   try {
     const form = new FormData(); form.append('file', file)
     const res = await http.post('/files/upload', form)
     const fileVO = res?.data || res
-    if (fileVO) { await groupStore.updateAvatar(groupStore.currentGroup.id, fileVO.url); groupStore.currentGroup.avatar = fileVO.url }
-  } catch {}
+    if (fileVO) {
+      await groupStore.updateAvatar(groupStore.currentGroup.id, fileVO.url)
+      success('群头像已更新')
+    }
+  } catch (e) { error('上传失败') }
   e.target.value = ''
 }
 function startEditNotice() {
