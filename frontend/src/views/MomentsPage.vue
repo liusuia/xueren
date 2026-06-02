@@ -5,13 +5,15 @@
         <div class="mp-dialog" :style="{ transform: `translate(${pos.x}px, ${pos.y}px)` }">
           <!-- 可拖拽标题栏 -->
           <div class="mp-nav" @mousedown="onDragStart">
-            <button class="mp-nav-btn" @click="goBack">{{ viewing ? '← 返回' : '← 关闭' }}</button>
-            <span class="mp-nav-title">{{ viewing ? (viewName+'的朋友圈') : '朋友圈' }}</span>
-            <button v-if="!viewing || viewId===auth.user?.id" class="mp-nav-btn" @click="showPost=true" title="发动态">📷</button>
-            <button class="mp-nav-btn" @click="showNotifs=true;loadNotifs()" title="消息">
-              🔔<span v-if="notifCount" class="mp-nav-badge">{{ notifCount > 99 ? '99+' : notifCount }}</span>
-            </button>
-            <button class="mp-nav-btn" @click="refresh" :disabled="refreshing">↻</button>
+            <button class="mp-nav-btn" @click="goBack">←</button>
+            <span class="mp-nav-title">{{ viewing ? (viewName+'的朋友圈') : '' }}</span>
+            <div class="mp-nav-actions">
+              <button v-if="!viewing || viewId===auth.user?.id" class="mp-nav-btn" @click="showPost=true" title="发动态">📷</button>
+              <button class="mp-nav-btn" @click="showNotifs=true;loadNotifs()" title="消息">
+                🔔<span v-if="notifCount" class="mp-nav-badge">{{ notifCount > 99 ? '99+' : notifCount }}</span>
+              </button>
+              <button class="mp-nav-btn" @click="refresh" :disabled="refreshing">↻</button>
+            </div>
           </div>
           <!-- 封面 -->
           <div class="mp-cover" @click="!viewing && goUser({userId:auth.user?.id,userName:auth.user?.nickname||auth.user?.username})">
@@ -154,10 +156,11 @@ async function doPost(){ if(!postText.value.trim()&&!postImgs.value.length)retur
 .mp-overlay{ position:fixed;inset:0;z-index:300;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center; }
 .mp-dialog{ width:560px;max-width:95vw;max-height:88vh;background:#fff;border-radius:12px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 8px 40px rgba(0,0,0,0.25);transition:box-shadow 0.2s; }
 .mp-nav{ display:flex;align-items:center;justify-content:space-between;padding:12px 18px;background:#1a1a1a;color:#fff;flex-shrink:0;cursor:move;user-select:none; }
-.mp-nav-btn{ background:none;border:none;color:#bbb;font-size:14px;cursor:pointer;padding:2px 6px;border-radius:4px;transition:all 0.15s; }
+.mp-nav-btn{ background:none;border:none;color:#bbb;font-size:14px;cursor:pointer;padding:2px 6px;border-radius:4px;transition:all 0.15s;position:relative; }
 .mp-nav-btn:hover{ color:#fff;background:rgba(255,255,255,0.1); }
 .mp-nav-btn:disabled{ opacity:0.5; }
-.mp-nav-title{ font-size:16px;font-weight:600;color:#fff; }
+.mp-nav-title{ font-size:15px;font-weight:600;color:#fff;flex:1; }
+.mp-nav-actions{ display:flex;align-items:center;gap:2px; }
 .mp-cover{ height:200px;background:linear-gradient(135deg,#4a4a4a,#2a2a2a);position:relative;flex-shrink:0;cursor:pointer;overflow:hidden; }
 .mp-cover-img{ width:100%;height:100%;object-fit:cover;position:absolute;inset:0; }
 .mp-cover-btn{ position:absolute;top:10px;right:10px;background:rgba(0,0,0,0.4);color:#fff;border:none;padding:4px 10px;border-radius:4px;font-size:12px;cursor:pointer;z-index:1;transition:background 0.15s; }
