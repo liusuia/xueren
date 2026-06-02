@@ -22,12 +22,9 @@
             <div class="gip-card">
               <div class="gip-card-hd">
                 <span>群公告</span>
-                <button v-if="groupStore.isOwner(groupStore.currentGroup.id) && !editingNotice" class="gip-link" @click="startEditNotice">编辑</button>
-                <button v-if="groupStore.isOwner(groupStore.currentGroup.id) && editingNotice" class="gip-link" style="color:#07C160" @click="saveNotice">保存</button>
-                <button v-if="editingNotice" class="gip-link" style="color:#e74c3c" @click="editingNotice=false">取消</button>
+                <button v-if="groupStore.isOwner(groupStore.currentGroup.id)" class="gip-link" @click="editNotice">编辑</button>
               </div>
-              <div v-if="!editingNotice" class="gip-card-body" v-html="renderNotice(groupStore.currentGroup.notice) || '<span style=color:var(--text-muted)>暂无公告</span>'"></div>
-              <textarea v-else ref="noticeInputRef" v-model="noticeText" class="gip-textarea" placeholder="输入群公告（支持换行和链接）" rows="4"></textarea>
+              <div class="gip-card-body" v-html="renderNotice(groupStore.currentGroup.notice) || '<span style=color:var(--text-muted)>暂无公告</span>'"></div>
             </div>
 
             <!-- 入群方式（仅群主可见） -->
@@ -195,28 +192,16 @@ function cleanNotice(v) {
 function renderNotice(v) {
   const text = cleanNotice(v)
   if (!text) return ''
-  // 链接替换为可点击的 <a>，换行 → <br>
   return text
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
     .replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>')
     .replace(/\n/g, '<br>')
 }
 
-const editingNotice = ref(false)
-const noticeText = ref('')
-const noticeInputRef = ref(null)
-function startEditNotice() {
-  noticeText.value = cleanNotice(groupStore.currentGroup?.notice) || ''
-  editingNotice.value = true
-  nextTick(() => noticeInputRef.value?.focus())
-}
-async function saveNotice() {
-  if (editingNotice.value) {
-    try {
-      await groupStore.updateNotice(groupStore.currentGroup.id, noticeText.value.trim())
-      groupStore.currentGroup.notice = noticeText.value.trim()
-    } catch (e) { error(e.message || '修改失败') }
-    editingNotice.value = false
+async function editNotice() {
+  const notice = await cfm.prompt('编辑群公告', { inputPlaceholder: '输入群公告', inputDefault: cleanNotice(groupStore.currentGroup?.notice) || '' })
+  if (notice !== false && notice !== undefined) {
+    try { await groupStore.updateNotice(groupStore.currentGroup.id, notice); groupStore.currentGroup.notice = notice } catch (e) { error(e.message || '修改失败') }
   }
 }
 
@@ -366,8 +351,6 @@ async function onDismiss() { if (await cfm.danger('确定解散群聊？此操�
 .gip-link { background: none; border: none; color: var(--accent, #f7931e); font-size: 12px; cursor: pointer; }
 
 .gip-inp { width: 100%; border: none; border-radius: 4px; padding: 6px 10px; font-size: 13px; color: var(--text-primary, #e8e8ea); background: transparent; outline: none; }
-.gip-textarea { width: 100%; border: 1px solid var(--border, #3a3c44); border-radius: 6px; padding: 8px 10px; font-size: 13px; color: var(--text-primary, #e8e8ea); background: var(--bg-input, #2e3038); outline: none; resize: vertical; font-family: inherit; line-height: 1.5; }
-.gip-textarea:focus { border-color: var(--accent, #f7931e); }
 .gip-card-body :deep(a) { color: var(--accent, #f7931e); text-decoration: underline; }
 
 .gip-members { display: flex; flex-wrap: wrap; gap: 6px; }
