@@ -84,6 +84,13 @@ export const favoriteApi = {
   remove: (messageId) => http.delete(`/favorites/${messageId}`)
 }
 
+export const momentApi = {
+  timeline: () => http.get('/moments'),
+  create: (data) => http.post('/moments', data),
+  like: (id) => http.post(`/moments/${id}/like`),
+  comment: (id, content) => http.post(`/moments/${id}/comment`, { content })
+}
+
 // ==================== Conversation ====================
 export const convApi = {
   list: () => http.get('/conversations'),
