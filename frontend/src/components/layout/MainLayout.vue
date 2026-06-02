@@ -11,6 +11,9 @@
       @profile="showProfile = true; showSidebar = false"
     />
 
+    <MomentsPage v-if="ui.activeTab === 'moments'" @back="ui.setActiveTab('chat')" />
+
+    <template v-else>
     <ListPanel
       v-show="bp.isDesktop() || !chat.currentConv"
       @selectConv="(c) => { onSelectConv(c); showSidebar = false }"
@@ -46,6 +49,7 @@
 
     <!-- 全局确认弹窗 -->
     <ConfirmDialog v-model="cfm.visible.value" v-bind="cfm.opts.value" @confirm="cfm.confirm" @cancel="cfm.cancel" />
+    </template>
   </div>
 </template>
 
@@ -75,6 +79,7 @@ import UserInfoCard from '../profile/UserInfoCard.vue'
 import FriendChatInfo from '../contacts/FriendChatInfo.vue'
 import ChatSearch from '../chat/ChatSearch.vue'
 import ConfirmDialog from '../common/ConfirmDialog.vue'
+import MomentsPage from '../../views/MomentsPage.vue'
 import { useConfirm } from '../../composables/useConfirm'
 import { playMessageSound } from '../../utils/sound'
 

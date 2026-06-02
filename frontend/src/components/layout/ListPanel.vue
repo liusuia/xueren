@@ -41,7 +41,6 @@
       <ConversationList v-if="ui.activeTab==='chat'" @select="$emit('selectConv',$event)" />
       <ContactList v-else-if="ui.activeTab==='contacts'" @select="$emit('selectConv',$event)" @addFriend="showAddFriend=true" @friendRequests="showFriendRequests=true" @createGroup="showCreateGroup=true" @joinGroup="showJoinGroup=true" @showFriendInfo="$emit('showFriendInfo',$event)" @showGroupInfo="$emit('showGroupInfo',$event)" @showBlockedList="showBlockedList=true" />
       <FavoriteList v-else-if="ui.activeTab==='favorites'" />
-      <MomentsPanel v-else-if="ui.activeTab==='moments'" />
     </template>
 
     <div v-if="showFriendRequests||showCreateGroup||showAddFriend||showJoinGroup" class="lp-overlay" @click="closeAll"></div>
@@ -65,7 +64,7 @@ import ContactList from '../contacts/ContactList.vue'
 import BlockedListPanel from '../contacts/BlockedListPanel.vue'
 import JoinGroupDialog from '../contacts/JoinGroupDialog.vue'
 import FavoriteList from '../contacts/FavoriteList.vue'
-import MomentsPanel from '../contacts/MomentsPanel.vue'
+
 import FriendRequestsPanel from '../contacts/FriendRequestsPanel.vue'
 import CreateGroupDialog from '../groups/CreateGroupDialog.vue'
 import AddFriendDialog from '../contacts/AddFriendDialog.vue'
