@@ -12,7 +12,11 @@
           </div>
           <div class="gip-body" v-if="groupStore.currentGroup">
             <div class="gip-top">
-              <Avatar :src="groupStore.currentGroup.avatar" :name="groupStore.currentGroup.name" :size="56" />
+              <div class="gip-avatar-wrap" @click="triggerGroupAvatar" :title="canEditName ? '点击更换群头像' : ''">
+                <Avatar :src="groupStore.currentGroup.avatar" :name="groupStore.currentGroup.name" :size="56" />
+                <div v-if="canEditName" class="gip-avatar-cam">📷</div>
+              </div>
+              <input type="file" ref="groupAvInput" accept="image/*" @change="onGroupAvatarChange" style="display:none" />
               <div v-if="!editingName" class="gip-name" :class="{ editable: canEditName }" @click="startEditName">{{ groupStore.currentGroup.name }}</div>
               <input v-else ref="nameInputRef" class="gip-inp gip-name-input" :value="editNameVal" @blur="saveName" @keydown.enter="$event.target.blur()" @keydown.escape="editingName=false" />
               <div class="gip-code" v-if="groupStore.currentGroup.groupCode">群号: {{ groupStore.currentGroup.groupCode }}</div>
@@ -204,6 +208,18 @@ function renderNotice(v) {
 const editingNotice = ref(false)
 const noticeText = ref('')
 const noticeInputRef = ref(null)
+const groupAvInput = ref(null)
+function triggerGroupAvatar() { if (canEditName.value) groupAvInput.value?.click() }
+async function onGroupAvatarChange(e) {
+  const file = e.target.files[0]; if (!file) return
+  try {
+    const form = new FormData(); form.append('file', file)
+    const res = await http.post('/files/upload', form)
+    const fileVO = res?.data || res
+    if (fileVO) { await groupStore.updateAvatar(groupStore.currentGroup.id, fileVO.url); groupStore.currentGroup.avatar = fileVO.url }
+  } catch {}
+  e.target.value = ''
+}
 function startEditNotice() {
   noticeText.value = cleanNotice(groupStore.currentGroup?.notice) || ''
   editingNotice.value = true
@@ -358,6 +374,9 @@ async function onDismiss() { if (await cfm.danger('确定解散群聊？此操�
 .gip-name.editable { cursor: pointer; border-bottom: 1px dashed transparent; }
 .gip-name.editable:hover { border-bottom-color: var(--accent, #f7931e); }
 .gip-code { font-size: 12px; color: var(--text-muted, #999); margin-top: 4px; user-select: all; }
+.gip-avatar-wrap { position: relative; cursor: pointer; }
+.gip-avatar-wrap:hover { opacity: 0.85; }
+.gip-avatar-cam { position: absolute; bottom: 0; right: 0; width: 22px; height: 22px; border-radius: 50%; background: var(--bg-input, #3a3c44); font-size: 12px; display: flex; align-items: center; justify-content: center; }
 .gip-name-input { font-size: 17px; font-weight: 600; text-align: center; margin-top: 8px; }
 
 .gip-card { background: var(--bg-input, #22252d); border-radius: 8px; padding: 12px 14px; margin-bottom: 12px; }
