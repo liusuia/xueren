@@ -144,7 +144,7 @@ const auth = useAuthStore()
 const convStore = useConversationStore()
 const { success, error } = useNotification()
 const cfm = useConfirm()
-const emit = defineEmits(['close', 'searchChat', 'clearChat', 'showUserInfo'])
+const emit = defineEmits(['close', 'searchChat', 'clearChat', 'showUserInfo', 'chatWith'])
 
 const ctxVisible = ref(false)
 const ctxPos = ref({ x: 0, y: 0 })
@@ -309,6 +309,7 @@ function onMemberCtx(e, member) {
   ctxMember = member; const items = []
   // 基础操作：所有人可见
   if (member.userId !== auth.user?.id) {
+    items.push({ label: '发消息', action: 'chatWith' })
     items.push({ label: '查看资料', action: 'viewProfile' })
   }
   // 群主专有
@@ -332,6 +333,7 @@ async function onCtxAction(item) {
   else if (item.action === 'toggleMute') { await groupStore.muteMember(gid, ctxMember.userId, !ctxMember.isMuted); success('已更新') }
   else if (item.action === 'remove') { await groupStore.removeMember(gid, ctxMember.userId); success('已移出') }
   else if (item.action === 'viewProfile') { emit('showUserInfo', ctxMember.userId) }
+  else if (item.action === 'chatWith') { emit('chatWith', ctxMember.userId) }
 }
 async function onQuit() { if (await cfm.danger('确定退出群聊？', { confirmText: '退出' })) { await groupStore.quitGroup(groupStore.currentGroup.id); emit('close') } }
 async function onDismiss() { if (await cfm.danger('确定解散群聊？此操作不可撤销。', { confirmText: '解散' })) { await groupStore.dismissGroup(groupStore.currentGroup.id); emit('close') } }

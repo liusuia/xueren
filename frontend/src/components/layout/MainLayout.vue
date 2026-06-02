@@ -32,7 +32,7 @@
 
     <!-- 各种弹窗/Slide-out -->
     <ProfilePanel v-if="showProfile" @close="showProfile = false" />
-    <GroupInfoPanel v-if="showGroupInfo" @close="showGroupInfo = false" @searchChat="showChatSearch = true" @clearChat="onClearCurrentChat" @showUserInfo="onShowUserInfo" />
+    <GroupInfoPanel v-if="showGroupInfo" @close="showGroupInfo = false" @searchChat="showChatSearch = true" @clearChat="onClearCurrentChat" @showUserInfo="onShowUserInfo" @chatWith="onChatWith" />
     <UserInfoCard v-if="showUserInfo" :userId="userInfoUserId" @close="showUserInfo = false" @chat="onSelectConv" />
     <FriendChatInfo v-if="showFriendInfo" :userId="friendInfoUserId" @close="showFriendInfo = false" @searchChat="showChatSearch = true" @clearChat="onClearCurrentChat" />
     <ChatSearch
@@ -243,6 +243,14 @@ function onShowUserInfo(userId) {
 function onShowFriendInfo(userId) {
   friendInfoUserId.value = userId
   showFriendInfo.value = true
+}
+
+function onChatWith(userId) {
+  const f = contactStore.friends.find(x => x.userId === userId)
+  const name = f ? (f.remark || f.nickname || f.username) : ('用户' + userId)
+  const conv = { targetType: 1, targetId: userId, targetName: name, targetAvatar: f?.avatar || '', unreadCount: 0 }
+  onSelectConv(conv)
+  showGroupInfo.value = false
 }
 
 async function onOpenGroupInfo() {
