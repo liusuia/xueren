@@ -24,7 +24,7 @@
                 <span>群公告</span>
                 <button v-if="groupStore.isOwner(groupStore.currentGroup.id)" class="gip-link" @click="editNotice">编辑</button>
               </div>
-              <div class="gip-card-body" v-html="renderNotice(groupStore.currentGroup.notice) || '<span style=color:var(--text-muted)>暂无公告</span>'"></div>
+              <div class="gip-card-body">{{ (groupStore.currentGroup?.notice || '暂无公告').replace(/\n/g, '\n') }}</div>
             </div>
 
             <!-- 入群方式（仅群主可见） -->
