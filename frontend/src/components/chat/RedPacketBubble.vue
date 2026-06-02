@@ -65,8 +65,9 @@ async function onClick() {
 .rpo-card { width: 280px; text-align: center; background: #fff; border-radius: 12px; padding: 32px 24px; }
 .rpo-top { font-size: 64px; }
 .rpo-msg { font-size: 16px; color: #333; margin: 12px 0; }
-.rpo-btn { width: 60px; height: 60px; margin: 16px auto; border-radius: 50%; background: radial-gradient(circle, #f7d34e, #e8a82c); color: #fff; font-size: 24px; font-weight: 700; display: flex; align-items: center; justify-content: center; cursor: pointer; border: 4px solid #f9e177; }
-.rpo-btn:hover { transform: scale(1.05); }
+.rpo-btn { width: 64px; height: 64px; margin: 16px auto; border-radius: 50%; background: radial-gradient(circle, #f7d34e, #e8a82c); color: #c0392b; font-size: 28px; font-weight: 900; display: flex; align-items: center; justify-content: center; cursor: pointer; border: 4px solid #f9e177; animation: rp-bounce 0.6s infinite alternate; }
+.rpo-btn:hover { transform: scale(1.1); animation: none; }
+@keyframes rp-bounce { from { transform: scale(1); } to { transform: scale(1.08); } }
 .rpo-amount { font-size: 28px; color: #e74c3c; font-weight: 700; margin: 8px 0; }
 .rpo-list { font-size: 12px; color: #888; text-align: left; max-height: 120px; overflow-y: auto; margin: 8px 0; }
 .rpo-item { padding: 3px 0; }

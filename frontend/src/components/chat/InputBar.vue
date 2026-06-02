@@ -72,7 +72,7 @@
 </template>
 
 <script setup>
-import { ref, computed, nextTick, onUnmounted, watch } from 'vue'
+import { ref, computed, nextTick, onMounted, onUnmounted, watch } from 'vue'
 import EmojiPicker from './EmojiPicker.vue'
 import Avatar from '../common/Avatar.vue'
 import { useAuthStore } from '../../stores/auth'
@@ -241,7 +241,12 @@ function notifyTyping() {
     sendTyping({ ...data, typing: false })
   }, 2000)
 }
-onUnmounted(() => clearTimeout(typingTimer))
+onUnmounted(() => { clearTimeout(typingTimer); document.removeEventListener('click', onClickOutside) })
+onMounted(() => document.addEventListener('click', onClickOutside))
+function onClickOutside(e) {
+  const ib = e.target.closest('.ib-root')
+  if (!ib) showEmoji.value = false
+}
 
 function onInput() {
   notifyTyping()
