@@ -16,17 +16,23 @@ const props = defineProps({ msg: Object, isSelf: Boolean })
 const playing = ref(false)
 let audio = null
 
+const dur = computed(() => {
+  if (props.msg._voiceDuration) return props.msg._voiceDuration
+  const parts = (props.msg.content || '').split('|')
+  return parseInt(parts[1]) || 0
+})
+const audioUrl = computed(() => (props.msg.content || '').split('|')[0])
 const durText = computed(() => {
-  const d = props.msg._voiceDuration || 0
+  const d = dur.value
   if (!d) return ''
   if (d < 60) return d + "''"
   return Math.floor(d / 60) + "'" + (d % 60) + "''"
 })
-const waveWidth = computed(() => Math.min(30 + (props.msg._voiceDuration || 0) * 2, 120))
+const waveWidth = computed(() => Math.min(30 + dur.value * 2, 120))
 
 function togglePlay() {
   if (playing.value) { stop(); return }
-  const url = props.msg.content || props.msg.fileUrl
+  const url = audioUrl.value || props.msg.fileUrl
   if (!url) return
   audio = new Audio(url)
   audio.onended = () => { playing.value = false; audio = null }

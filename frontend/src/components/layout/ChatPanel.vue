@@ -198,7 +198,7 @@ async function onSendVoice({ blob, duration }) {
   const res = await http.post('/files/upload', form)
   const fileVO = res?.data || res
   if (fileVO) {
-    await chat.sendMessage({ content: fileVO.url, msgType: MSG_TYPE.VOICE, fileId: fileVO.id, _voiceDuration: duration })
+    await chat.sendMessage({ content: fileVO.url + '|' + duration, msgType: MSG_TYPE.VOICE, fileId: fileVO.id, _voiceDuration: duration })
   }
 }
 async function onSendLocation(content) {
