@@ -35,7 +35,11 @@
 
     <!-- 输入区 -->
     <div class="ib-input-area">
-      <textarea ref="inputRef" v-model="text" class="ib-textarea" :placeholder="placeholder" rows="1" @keydown.enter.exact="onEnter" @input="onInput" @paste="onPaste"></textarea>
+      <div v-if="isRecording" class="ib-recording">
+        <span class="ib-rec-dot"></span>
+        <span>录音中 {{ recordSeconds }}s 松开发送</span>
+      </div>
+      <textarea v-else ref="inputRef" v-model="text" class="ib-textarea" :placeholder="placeholder" rows="1" @keydown.enter.exact="onEnter" @input="onInput" @paste="onPaste"></textarea>
       <button class="ib-send" :class="{ ready: text.trim() }" @click="onSend" :disabled="!text.trim()">发送</button>
     </div>
 
@@ -72,6 +76,8 @@ const isRecording = ref(false)
 let mediaRecorder = null
 let recordChunks = []
 let recordStartTime = 0
+const recordSeconds = ref(0)
+let recordTimer = null
 
 async function startRecord(e) {
   try {
@@ -87,12 +93,15 @@ async function startRecord(e) {
       emit('sendVoice', { blob, duration })
     }
     recordStartTime = Date.now()
+    recordSeconds.value = 0
     mediaRecorder.start()
     isRecording.value = true
+    recordTimer = setInterval(() => { recordSeconds.value = Math.round((Date.now() - recordStartTime) / 1000) }, 200)
   } catch (e) { /* 麦克风不可用 */ }
 }
 
 function stopRecord() {
+  clearInterval(recordTimer)
   if (mediaRecorder && isRecording.value) {
     mediaRecorder.stop()
     isRecording.value = false
@@ -100,6 +109,7 @@ function stopRecord() {
 }
 
 function cancelRecord() {
+  clearInterval(recordTimer)
   if (mediaRecorder && isRecording.value) {
     mediaRecorder.stop()
     recordChunks = []
@@ -339,6 +349,9 @@ function onFileChange(e) { const f = e.target.files[0]; if (f) { emit('sendFile'
   resize: none; max-height: 120px; line-height: 1.5; min-height: 24px; font-family: inherit;
 }
 .ib-textarea::placeholder { color: var(--text-placeholder, #555); }
+.ib-recording { flex: 1; display: flex; align-items: center; gap: 8px; padding: 8px 12px; font-size: 13px; color: #e74c3c; }
+.ib-rec-dot { width: 8px; height: 8px; border-radius: 50%; background: #e74c3c; animation: ib-blink 0.5s infinite; }
+@keyframes ib-blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
 .ib-send {
   padding: 6px 20px; border: none; border-radius: 4px;
   background: var(--bg-input, #2e3038); color: var(--text-muted, #888);
