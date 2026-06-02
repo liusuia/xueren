@@ -15,4 +15,5 @@ public class GroupMemberVO {
     private Integer role;
     private Boolean isMuted;
     private Boolean isNotificationMuted;
+    private Boolean isOnline;
 }

@@ -79,7 +79,10 @@
               <div class="gip-card-hd"><span>群成员 ({{ groupStore.currentGroupMembers.length }})</span></div>
               <div class="gip-members">
                 <div v-for="m in groupStore.currentGroupMembers" :key="m.userId" class="gip-mem" @click="onMemberClick(m)" @contextmenu.prevent="onMemberCtx($event, m)">
-                  <Avatar :src="m.userAvatar || m.avatar" :name="m.nickname || m.userName || m.username" :size="40" />
+                  <div style="position:relative">
+                    <Avatar :src="m.userAvatar || m.avatar" :name="m.nickname || m.userName || m.username" :size="40" />
+                    <span v-if="m.isOnline" class="gip-online-dot"></span>
+                  </div>
                   <span class="gip-mem-name">{{ m.nickname || m.userName || m.username }}</span>
                   <span v-if="m.role === 1" class="gip-role owner">群主</span>
                   <span v-else-if="m.role === 2" class="gip-role admin">管理</span>
@@ -391,6 +394,7 @@ async function onDismiss() { if (await cfm.danger('确定解散群聊？此操�
 .gip-avatar-wrap { position: relative; cursor: pointer; }
 .gip-avatar-wrap:hover { opacity: 0.85; }
 .gip-avatar-cam { position: absolute; bottom: 0; right: 0; width: 22px; height: 22px; border-radius: 50%; background: var(--bg-input, #3a3c44); font-size: 12px; display: flex; align-items: center; justify-content: center; }
+.gip-online-dot { position: absolute; bottom: 0; right: 0; width: 10px; height: 10px; border-radius: 50%; background: #07C160; border: 2px solid var(--bg-dialog, #1e2028); }
 .gip-name-input { font-size: 17px; font-weight: 600; text-align: center; margin-top: 8px; }
 
 .gip-card { background: var(--bg-input, #22252d); border-radius: 8px; padding: 12px 14px; margin-bottom: 12px; }

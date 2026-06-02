@@ -20,6 +20,7 @@ import com.xueren.repository.StoredFileRepository;
 import com.xueren.repository.UserRepository;
 import com.xueren.event.GroupEvent;
 import com.xueren.event.JoinRequestEvent;
+import com.xueren.netty.ChannelManager;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
@@ -47,6 +48,7 @@ public class GroupService {
     private final JdbcTemplate jdbc;
     private final DataSource dataSource;
     private final ApplicationEventPublisher eventPublisher;
+    private final ChannelManager channelManager;
 
     public GroupService(ChatGroupRepository chatGroupRepository,
                         GroupMemberRepository groupMemberRepository,
@@ -56,7 +58,8 @@ public class GroupService {
                         UserRepository userRepository,
                         JdbcTemplate jdbc,
                         DataSource dataSource,
-                        ApplicationEventPublisher eventPublisher) {
+                        ApplicationEventPublisher eventPublisher,
+                        ChannelManager channelManager) {
         this.chatGroupRepository = chatGroupRepository;
         this.groupMemberRepository = groupMemberRepository;
         this.groupFileRepository = groupFileRepository;
@@ -66,6 +69,7 @@ public class GroupService {
         this.jdbc = jdbc;
         this.dataSource = dataSource;
         this.eventPublisher = eventPublisher;
+        this.channelManager = channelManager;
     }
 
     @Transactional
@@ -164,6 +168,7 @@ public class GroupService {
                                     .role(m.getRole())
                                     .isMuted(m.getIsMuted() != null && m.getIsMuted() == 1)
                                     .isNotificationMuted(m.getIsNotificationMuted() != null && m.getIsNotificationMuted() == 1)
+                                    .isOnline(channelManager.isOnline(m.getUserId()))
                                     .build();
                         })
                         .filter(Objects::nonNull)
