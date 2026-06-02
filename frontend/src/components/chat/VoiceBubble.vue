@@ -1,7 +1,10 @@
 <template>
   <div class="vb-root" :class="{ self: isSelf }" @click="togglePlay">
-    <svg v-if="!playing" viewBox="0 0 24 24" width="18" height="18" fill="currentColor" class="vb-icon"><path d="M8 5v14l11-7z"/></svg>
-    <svg v-else viewBox="0 0 24 24" width="18" height="18" fill="currentColor" class="vb-icon"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+    <div style="position:relative;flex-shrink:0">
+      <svg v-if="!playing" viewBox="0 0 24 24" width="18" height="18" fill="currentColor" class="vb-icon"><path d="M8 5v14l11-7z"/></svg>
+      <svg v-else viewBox="0 0 24 24" width="18" height="18" fill="currentColor" class="vb-icon"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+      <span v-if="!played && !isSelf" class="vb-dot"></span>
+    </div>
     <div class="vb-body">
       <div class="vb-progress" v-if="playing">
         <div class="vb-bar-fill" :style="{ width: progressPct + '%' }"></div>
@@ -19,6 +22,7 @@ import { ref, computed, onUnmounted } from 'vue'
 
 const props = defineProps({ msg: Object, isSelf: Boolean })
 const playing = ref(false)
+const played = ref(false)
 const currentTime = ref(0)
 let audio = null
 let progressTimer = null
@@ -53,6 +57,7 @@ function togglePlay() {
   audio.onerror = () => { stop() }
   audio.play().catch(() => { stop() })
   playing.value = true
+  played.value = true
   currentTime.value = 0
 }
 function stop() {
@@ -71,6 +76,7 @@ function stop() {
 }
 .vb-root.self { background: #95eb6b; }
 .vb-icon { flex-shrink: 0; }
+.vb-dot { position: absolute; top: -2px; right: -4px; width: 7px; height: 7px; border-radius: 50%; background: #e74c3c; }
 .vb-body { display: flex; flex-direction: column; gap: 3px; flex: 1; min-width: 0; }
 .vb-dur { font-size: 11px; min-width: 24px; }
 .vb-wave { display: flex; align-items: center; gap: 2px; }
