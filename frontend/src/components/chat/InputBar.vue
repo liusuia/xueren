@@ -167,8 +167,11 @@ async function sendLocation() {
     const lat = latitude.toFixed(6)
     const lng = longitude.toFixed(6)
     const link = `https://map.baidu.com/@${lng},${lat},17z`
-    // 用免费瓦片拼预览图
-    const tileUrl = `https://tile.openstreetmap.org/14/${Math.floor((longitude+180)/360*16384)}/${Math.floor((1-Math.log(Math.tan(latitude*Math.PI/180)+1/Math.cos(latitude*Math.PI/180))/Math.PI)/2*16384)}.png`
+    // 高德地图瓦片（国内可访问）
+    const z = 14
+    const x = Math.floor((longitude + 180) / 360 * Math.pow(2, z))
+    const y = Math.floor((1 - Math.log(Math.tan(latitude * Math.PI / 180) + 1 / Math.cos(latitude * Math.PI / 180)) / Math.PI) / 2 * Math.pow(2, z))
+    const tileUrl = `https://webrd01.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x=${x}&y=${y}&z=${z}`
     const content = JSON.stringify({ lat, lng, link, map: tileUrl })
     emit('sendLocation', content)
   } catch (e) { /* 定位失败 */ }
