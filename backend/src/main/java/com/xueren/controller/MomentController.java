@@ -128,6 +128,15 @@ public class MomentController {
         return ApiResponse.ok(m);
     }
 
+    @DeleteMapping("/comments/{id}")
+    @Transactional
+    public ApiResponse<Void> deleteComment(@PathVariable Long id) {
+        MomentComment c = commentRepo.findById(id).orElse(null);
+        if (c == null || !c.getUserId().equals(AuthHolder.currentUserId())) return ApiResponse.fail(403, "无权删除");
+        commentRepo.delete(c);
+        return ApiResponse.ok(null);
+    }
+
     @DeleteMapping("/{id}")
     @Transactional
     public ApiResponse<Void> delete(@PathVariable Long id) {

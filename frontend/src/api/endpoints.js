@@ -91,7 +91,8 @@ export const momentApi = {
   notifications: () => http.get('/moments/notifications'),
   create: (data) => http.post('/moments', data),
   like: (id) => http.post(`/moments/${id}/like`),
-  comment: (id, content) => http.post(`/moments/${id}/comment`, { content })
+  comment: (id, content) => http.post(`/moments/${id}/comment`, { content }),
+  deleteComment: (id) => http.delete(`/moments/comments/${id}`)
 }
 
 // ==================== Conversation ====================

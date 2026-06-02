@@ -53,7 +53,7 @@
                   </div>
                   <div class="mp-interact" v-if="m.likes?.length||m.comments?.length">
                     <div v-if="m.likes?.length" class="mp-i-likes">❤️ {{ m.likes.map(l=>l.name).join(', ') }}</div>
-                    <div v-if="m.comments?.length" class="mp-i-cmts"><div v-for="c in m.comments" :key="c.id" class="mp-i-cmt"><b>{{ c.userName }}</b>: {{ c.content }}</div></div>
+                    <div v-if="m.comments?.length" class="mp-i-cmts"><div v-for="c in m.comments" :key="c.id" class="mp-i-cmt"><b>{{ c.userName }}</b>: {{ c.content }} <span v-if="c.userId===auth.user?.id" class="mp-cmt-del" @click="delComment(c.id)">删除</span></div></div>
                   </div>
                   <div v-if="m._cmt" class="mp-cmt-input"><input v-model="m._txt" @keydown.enter="sendCmt(m)" placeholder="评论" class="mp-inp" /></div>
                 </div>
@@ -149,6 +149,7 @@ function fmt(t){ const d=toDate(t); if(isNaN(d.getTime())) return ''; const n=ne
 async function toggleLike(m){ try{await momentApi.like(m.id); await load()}catch{} }
 async function sendCmt(m){ if(!m._txt?.trim())return; try{await momentApi.comment(m.id,m._txt); m._txt=''; await load()}catch{} }
 async function delMoment(id){ try{await http.delete('/moments/'+id); await load()}catch{} }
+async function delComment(id){ try{await http.delete('/moments/comments/'+id); await load()}catch{} }
 function triggerCover(){ coverInput.value?.click() }
 function onCoverChange(e){ const f=e.target.files[0]; if(!f)return; const r=new FileReader(); r.onload=()=>{coverUrl.value=r.result;localStorage.setItem('xr-cover',r.result)}; r.readAsDataURL(f); e.target.value='' }
 function preview(imgs,i){ const w=window.open('','_blank'); if(w){w.document.write(`<img src="${imgs[i]}" style="max-width:100vw;max-height:100vh">`);w.document.title=i+1+'/'+imgs.length}}
@@ -198,8 +199,10 @@ async function doPost(){ if(!postText.value.trim()&&!postImgs.value.length)retur
 .mp-interact{ background:#f5f5f5;border-radius:2px;padding:6px 10px;margin-top:4px; }
 .mp-i-likes{ font-size:13px;color:#576b95;padding-bottom:4px;margin-bottom:4px;border-bottom:1px solid #e5e5e5; }
 .mp-i-cmts{ }
-.mp-i-cmt{ font-size:13px;color:#333;padding:1px 0;line-height:1.45; }
-.mp-i-cmt b{ color:#576b95; }
+.mp-i-cmt{ font-size:13px;color:#333;padding:1px 0;line-height:1.45;display:flex;align-items:baseline; }
+.mp-i-cmt b{ color:#576b95;margin-right:4px; }
+.mp-cmt-del{ font-size:11px;color:#bbb;cursor:pointer;margin-left:6px; }
+.mp-cmt-del:hover{ color:#e74c3c; }
 .mp-cmt-input{ margin-top:4px; }
 .mp-inp{ width:100%;border:1px solid #eee;border-radius:4px;padding:4px 8px;font-size:13px;outline:none;background:#f5f5f5; }
 .mp-inp:focus{ border-color:#ccc;background:#fff; }
