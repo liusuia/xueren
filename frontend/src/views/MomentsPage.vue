@@ -104,12 +104,13 @@ async function load(){
   try { items.value = viewing.value ? (await momentApi.userTimeline(viewId.value)||[]) : (await momentApi.timeline()||[]) }
   catch {}; loading.value=false
 }
-function goUser(m){ if(m.userId===auth.user?.id) return; viewing.value=true; viewId.value=m.userId; viewName.value=m.userName; load() }
+function goUser(m){ viewing.value=true; viewId.value=m.userId; viewName.value=m.userId===auth.user?.id ? '我' : m.userName; load() }
 function goBack(){ if(viewing.value){ viewing.value=false; viewId.value=null; viewName.value=''; load() } else emit('close') }
-function sameDay(a,b){ return new Date(a).toDateString()===new Date(b).toDateString() }
-function dayLabel(t){ const d=new Date(t),n=new Date(),diff=n-d; if(diff<864e5&&d.getDate()===n.getDate())return'今天'; const y=new Date(n.getFullYear(),n.getMonth(),n.getDate()-1); if(d.toDateString()===y.toDateString())return'昨天'; return d.getFullYear()+'年'+(d.getMonth()+1)+'月'+d.getDate()+'日' }
+function toDate(t){ if(!t) return new Date(); if(Array.isArray(t)) return new Date(t[0],t[1]-1,t[2],t[3]||0,t[4]||0,t[5]||0); return new Date(t) }
+function sameDay(a,b){ return toDate(a).toDateString()===toDate(b).toDateString() }
+function dayLabel(t){ const d=toDate(t),n=new Date(); if(isNaN(d.getTime())) return ''; const diff=n-d; if(diff<864e5&&d.getDate()===n.getDate())return'今天'; const y=new Date(n.getFullYear(),n.getMonth(),n.getDate()-1); if(d.toDateString()===y.toDateString())return'昨天'; return d.getFullYear()+'年'+(d.getMonth()+1)+'月'+d.getDate()+'日' }
 function imgList(m){ try{return JSON.parse(m.images||'[]')}catch{return[]} }
-function fmt(t){ if(!t)return''; const d=new Date(t),n=new Date(); const diff=n-d; if(diff<6e4)return'刚刚'; if(diff<36e5)return Math.floor(diff/6e4)+'分钟前'; if(diff<864e5)return Math.floor(diff/36e5)+'小时前'; return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0') }
+function fmt(t){ const d=toDate(t); if(isNaN(d.getTime())) return ''; const n=new Date(); const diff=n-d; if(diff<6e4)return'刚刚'; if(diff<36e5)return Math.floor(diff/6e4)+'分钟前'; if(diff<864e5)return Math.floor(diff/36e5)+'小时前'; return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0') }
 async function toggleLike(m){ try{await momentApi.like(m.id); await load()}catch{} }
 async function sendCmt(m){ if(!m._txt?.trim())return; try{await momentApi.comment(m.id,m._txt); m._txt=''; await load()}catch{} }
 async function delMoment(id){ try{await http.delete('/moments/'+id); await load()}catch{} }

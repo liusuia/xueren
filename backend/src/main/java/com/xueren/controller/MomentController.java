@@ -74,8 +74,8 @@ public class MomentController {
         Moment m = new Moment(); m.setUserId(AuthHolder.currentUserId());
         m.setContent(body.getOrDefault("content", ""));
         m.setImages(body.getOrDefault("images", "[]"));
-        momentRepo.save(m);
-        return ApiResponse.ok(m);
+        momentRepo.saveAndFlush(m);
+        return ApiResponse.ok(momentRepo.findById(m.getId()).orElse(m));
     }
 
     @DeleteMapping("/{id}")
