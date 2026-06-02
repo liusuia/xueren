@@ -596,8 +596,10 @@ public class GroupService {
     @Transactional
     public GroupVO updateAvatar(Long userId, Long groupId, String avatarUrl) {
         ChatGroup group = getGroup(groupId);
-        if (!group.getOwnerId().equals(userId)) {
-            throw new BusinessException("只有群主可以修改群头像");
+        GroupMember member = groupMemberRepository.findByGroupIdAndUserId(groupId, userId)
+                .orElseThrow(() -> new BusinessException("不是群成员"));
+        if (member.getRole() > Constants.GROUP_ROLE_ADMIN) {
+            throw new BusinessException("仅群主和管理员可修改");
         }
         group.setAvatar(avatarUrl);
         chatGroupRepository.save(group);

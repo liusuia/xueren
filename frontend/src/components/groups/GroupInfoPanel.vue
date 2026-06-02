@@ -12,9 +12,9 @@
           </div>
           <div class="gip-body" v-if="groupStore.currentGroup">
             <div class="gip-top">
-              <div class="gip-avatar-wrap" @click="triggerGroupAvatar" :title="canEditName ? '点击更换群头像' : ''">
+              <div class="gip-avatar-wrap" @click="triggerGroupAvatar">
                 <Avatar :src="groupStore.currentGroup.avatar" :name="groupStore.currentGroup.name" :size="56" />
-                <div v-if="canEditName" class="gip-avatar-cam">📷</div>
+                <div v-if="canEditAvatar" class="gip-avatar-cam">📷</div>
               </div>
               <input type="file" ref="groupAvInput" accept="image/*" @change="onGroupAvatarChange" style="display:none" />
               <div v-if="!editingName" class="gip-name" :class="{ editable: canEditName }" @click="startEditName">{{ groupStore.currentGroup.name }}</div>
@@ -215,7 +215,7 @@ const groupAvInput = ref(null)
 function copyGroupCode() {
   navigator.clipboard.writeText(groupStore.currentGroup.groupCode).then(() => success('已复制')).catch(() => {})
 }
-function triggerGroupAvatar() { if (canEditName.value) groupAvInput.value?.click() }
+function triggerGroupAvatar() { if (canEditAvatar.value) groupAvInput.value?.click(); else error('仅群主可修改') }
 async function onGroupAvatarChange(e) {
   const file = e.target.files[0]; if (!file) return
   try {
@@ -254,6 +254,7 @@ const nameInputRef = ref(null)
 const canEditName = computed(() => {
   return groupStore.isOwner(groupStore.currentGroup?.id) || groupStore.isAdmin(groupStore.currentGroup?.id)
 })
+const canEditAvatar = computed(() => groupStore.isOwner(groupStore.currentGroup?.id))
 function startEditName() {
   if (!canEditName.value) return
   editNameVal.value = groupStore.currentGroup.name
