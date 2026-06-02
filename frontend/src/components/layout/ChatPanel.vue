@@ -104,6 +104,7 @@ import { computed, ref, watch, nextTick, onMounted } from 'vue'
 const chat = useChatStore()
 const groupStore = useGroupStore()
 const contactStore = useContactStore()
+const msgListRef = ref(null)
 const inputBarRef = ref(null)
 const bgInput = ref(null)
 const chatBg = ref('')

@@ -22,9 +22,12 @@
             <div class="gip-card">
               <div class="gip-card-hd">
                 <span>群公告</span>
-                <button v-if="groupStore.isOwner(groupStore.currentGroup.id)" class="gip-link" @click="editNotice">编辑</button>
+                <button v-if="groupStore.isOwner(groupStore.currentGroup.id) && !editingNotice" class="gip-link" @click="startEditNotice">编辑</button>
+                <button v-if="groupStore.isOwner(groupStore.currentGroup.id) && editingNotice" class="gip-link" style="color:#07C160" @click="saveNotice">保存</button>
+                <button v-if="editingNotice" class="gip-link" style="color:#e74c3c" @click="editingNotice=false">取消</button>
               </div>
-              <div class="gip-card-body">{{ (groupStore.currentGroup?.notice || '暂无公告').replace(/\n/g, '\n') }}</div>
+              <div v-if="!editingNotice" class="gip-card-body" v-html="renderNotice(groupStore.currentGroup.notice) || '<span style=color:var(--text-muted)>暂无公告</span>'"></div>
+              <textarea v-else ref="noticeInputRef" v-model="noticeText" class="gip-textarea" placeholder="输入群公告（支持换行和链接）" rows="4"></textarea>
             </div>
 
             <!-- 入群方式（仅群主可见） -->
@@ -198,11 +201,20 @@ function renderNotice(v) {
     .replace(/\n/g, '<br>')
 }
 
-async function editNotice() {
-  const notice = await cfm.prompt('编辑群公告', { inputPlaceholder: '输入群公告', inputDefault: cleanNotice(groupStore.currentGroup?.notice) || '' })
-  if (notice !== false && notice !== undefined) {
-    try { await groupStore.updateNotice(groupStore.currentGroup.id, notice); groupStore.currentGroup.notice = notice } catch (e) { error(e.message || '修改失败') }
-  }
+const editingNotice = ref(false)
+const noticeText = ref('')
+const noticeInputRef = ref(null)
+function startEditNotice() {
+  noticeText.value = cleanNotice(groupStore.currentGroup?.notice) || ''
+  editingNotice.value = true
+  nextTick(() => noticeInputRef.value?.focus())
+}
+async function saveNotice() {
+  try {
+    await groupStore.updateNotice(groupStore.currentGroup.id, noticeText.value.trim())
+    groupStore.currentGroup.notice = noticeText.value.trim()
+    editingNotice.value = false
+  } catch (e) { error(e.message || '修改失败') }
 }
 
 const me = computed(() => groupStore.currentGroupMembers.find(m => m.userId === auth.user?.id))
@@ -294,7 +306,6 @@ async function doInvite() {
   try { await groupStore.addMembers(groupStore.currentGroup.id, inviteList.value); success('邀请成功'); inviteList.value = []; showInvite.value = false } catch (e) { error(e.message) }
 }
 function onMemberCtx(e, member) {
-  console.log('[ctx] member right-click', member.userId, 'myRole:', auth.user?.id, 'ownerId:', groupStore.currentGroup?.ownerId)
   ctxMember = member; const items = []
   if (groupStore.currentGroup.ownerId === auth.user?.id) {
     items.push({ label: member.role === 2 ? '取消管理员' : '设为管理员', action: 'toggleAdmin' })
@@ -305,7 +316,6 @@ function onMemberCtx(e, member) {
     items.push({ label: muted ? '解除禁言' : '禁言', action: 'toggleMute' })
     items.push({ label: '移出群聊', action: 'remove', danger: true })
   }
-  console.log('[ctx] items:', items.length, items)
   if (!items.length) return
   ctxItems.value = items; ctxPos.value = { x: e.clientX, y: e.clientY }; ctxVisible.value = true
 }
@@ -353,6 +363,8 @@ async function onDismiss() { if (await cfm.danger('确定解散群聊？此操�
 .gip-link { background: none; border: none; color: var(--accent, #f7931e); font-size: 12px; cursor: pointer; }
 
 .gip-inp { width: 100%; border: none; border-radius: 4px; padding: 6px 10px; font-size: 13px; color: var(--text-primary, #e8e8ea); background: transparent; outline: none; }
+.gip-textarea { width: 100%; border: 1px solid var(--border, #3a3c44); border-radius: 6px; padding: 8px 10px; font-size: 13px; color: var(--text-primary, #e8e8ea); background: var(--bg-input, #2e3038); outline: none; resize: vertical; font-family: inherit; line-height: 1.5; }
+.gip-textarea:focus { border-color: var(--accent, #f7931e); }
 .gip-card-body :deep(a) { color: var(--accent, #f7931e); text-decoration: underline; }
 
 .gip-members { display: flex; flex-wrap: wrap; gap: 6px; }
