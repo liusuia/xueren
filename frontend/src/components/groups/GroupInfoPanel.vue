@@ -221,12 +221,15 @@ async function onGroupAvatarChange(e) {
   try {
     const form = new FormData(); form.append('file', file)
     const res = await http.post('/files/upload', form)
-    const fileVO = res?.data || res
-    if (fileVO) {
-      await groupStore.updateAvatar(groupStore.currentGroup.id, fileVO.url)
+    console.log('upload result:', res)
+    const url = res?.url || (typeof res === 'string' ? res : null)
+    if (url) {
+      await groupStore.updateAvatar(groupStore.currentGroup.id, url)
       success('群头像已更新')
+    } else {
+      error('上传失败')
     }
-  } catch (e) { error('上传失败') }
+  } catch (e) { console.error('avatar upload error', e); error('上传失败') }
   e.target.value = ''
 }
 function startEditNotice() {
