@@ -20,7 +20,8 @@
     <div v-if="chatStore.multiSelect" class="ml-ms-bar">
       <button class="ml-ms-cancel" @click="chatStore.toggleMultiSelect()">取消</button>
       <span class="ml-ms-count">已选 {{ chatStore.selectedIds.size }} 条</span>
-      <button class="ml-ms-fwd" :disabled="!chatStore.selectedIds.size" @click="openMultiForward">转发</button>
+      <button class="ml-ms-fwd" :disabled="!chatStore.selectedIds.size" @click="openMultiForward">逐条转发</button>
+      <button class="ml-ms-merge" :disabled="!chatStore.selectedIds.size" @click="mergeForward">合并转发</button>
       <button class="ml-ms-del" :disabled="!chatStore.selectedIds.size" @click="chatStore.deleteSelected()">删除</button>
     </div>
 
@@ -133,6 +134,22 @@ async function doForward(conv) {
 function openMultiForward() {
   isMultiForward.value = true
   forwardMsg.value = null
+  showForward.value = true
+}
+
+async function mergeForward() {
+  const selected = props.messages.filter(m => chatStore.selectedIds.has(m.id))
+  if (!selected.length) return
+  // 合并转发：生成聊天记录文本
+  const lines = selected.map(m => {
+    const name = m.fromNickname || m.fromUserName || '用户'
+    const time = new Date(m.createdAt).toLocaleString('zh-CN', { month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit' })
+    const content = m.msgType === 2 ? '[图片]' : m.msgType === 7 ? '[表情]' : m.msgType === 8 ? '[语音]' : (m.content || '[消息]')
+    return `${name} ${time}\n${content}`
+  })
+  const merged = '聊天记录\n\n' + lines.join('\n\n')
+  forwardMsg.value = { content: merged, msgType: 1 }
+  isMultiForward.value = false
   showForward.value = true
 }
 
@@ -344,8 +361,11 @@ watch(() => chatStore.jumpMsgId, (msgId) => {
 }
 .ml-ms-cancel { background: none; border: none; color: var(--text-muted, #888); font-size: 13px; cursor: pointer; }
 .ml-ms-count { font-size: 13px; color: var(--text-primary, #e8e8ea); }
-.ml-ms-fwd { padding: 6px 20px; border: none; border-radius: 4px; background: var(--accent, #f7931e); color: #fff; font-size: 13px; cursor: pointer; }
+.ml-ms-fwd { padding: 6px 14px; border: none; border-radius: 4px; background: var(--accent, #f7931e); color: #fff; font-size: 13px; cursor: pointer; }
 .ml-ms-fwd:disabled { opacity: 0.4; cursor: not-allowed; }
+.ml-ms-merge { padding: 6px 14px; border: none; border-radius: 4px; background: var(--accent, #f7931e); color: #fff; font-size: 13px; cursor: pointer; opacity: 0.8; }
+.ml-ms-merge:disabled { opacity: 0.4; cursor: not-allowed; }
+.ml-ms-merge:hover { opacity: 1; }
 .ml-ms-del { padding: 6px 20px; border: none; border-radius: 4px; background: #e74c3c; color: #fff; font-size: 13px; cursor: pointer; }
 .ml-ms-del:disabled { opacity: 0.4; cursor: not-allowed; }
 .fw-overlay { position: fixed; inset: 0; z-index: 300; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; }
