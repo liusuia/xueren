@@ -53,12 +53,12 @@
     <ImagePreview :visible="previewVisible" :images="previewImages" :index="previewIndex" @close="previewVisible = false" />
 
     <!-- 回复指示条 -->
-    <div v-if="chat.replyTo" class="cp-reply-bar">
+    <div v-if="chat.replyTo" class="cp-reply-bar" @click="jumpToReply">
       <div class="cp-reply-info">
         <span class="cp-reply-label">回复 {{ chat.replyTo.senderName }}</span>
         <span class="cp-reply-preview">{{ chat.replyTo.preview }}</span>
       </div>
-      <button class="cp-reply-close" @click="chat.clearReply()">&times;</button>
+      <button class="cp-reply-close" @click.stop="chat.clearReply()">&times;</button>
     </div>
 
     <!-- 输入栏 -->
@@ -165,6 +165,9 @@ function onPreview({ images, index }) {
   previewImages.value = images
   previewIndex.value = index
   previewVisible.value = true
+}
+function jumpToReply() {
+  if (chat.replyTo?.id) chat.jumpMsgId = chat.replyTo.id
 }
 
 async function loadOlder() {
