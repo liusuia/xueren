@@ -18,6 +18,9 @@
             <OnlineDot :active="chat.currentConv.online" :s="8" />
             <span>{{ chat.currentConv.online ? '在线' : '离线' }}</span>
           </div>
+          <div class="cp-h-status" v-else-if="chat.currentConv.targetType === 2">
+            <span>{{ groupStore.currentGroupMembers.length }} 名群成员</span>
+          </div>
         </div>
       </div>
       <div class="cp-h-right">
