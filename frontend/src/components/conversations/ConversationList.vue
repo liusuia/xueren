@@ -9,6 +9,7 @@
       />
     </div>
     <div v-else class="cl-list" ref="listRef">
+      <div v-if="totalUnread > 0" class="cl-read-all" @click="markAll">全部已读 ({{ totalUnread }})</div>
       <ConversationItem
         v-for="conv in convStore.list"
         :key="conv.id"
@@ -31,7 +32,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import ConversationItem from './ConversationItem.vue'
 import LoadingSpinner from '../common/LoadingSpinner.vue'
 import EmptyState from '../common/EmptyState.vue'
@@ -43,6 +44,12 @@ import { useConfirm } from '../../composables/useConfirm'
 
 const convStore = useConversationStore()
 const chatStore = useChatStore()
+const totalUnread = computed(() => convStore.list.reduce((s, c) => s + (c.unreadCount || 0), 0))
+async function markAll() {
+  for (const c of convStore.list) {
+    if (c.unreadCount > 0) await convStore.markRead(c.targetType, c.targetId, c.lastMessageId)
+  }
+}
 const cfm = useConfirm()
 const ctx = useContextMenu()
 const ctxVisible = ref(false)
@@ -91,5 +98,7 @@ async function onCtxAction(item) {
 <style scoped>
 .cl-root { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
 .cl-list { flex: 1; overflow-y: auto; }
+.cl-read-all { text-align: center; padding: 8px; font-size: 12px; color: var(--accent, #f7931e); cursor: pointer; border-bottom: 1px solid var(--border, #2e3038); }
+.cl-read-all:hover { background: var(--bg-hover, rgba(255,255,255,0.04)); }
 .cl-empty { flex: 1; display: flex; align-items: center; justify-content: center; }
 </style>
