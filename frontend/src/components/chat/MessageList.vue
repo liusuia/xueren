@@ -19,7 +19,7 @@
     <!-- 多选底栏 -->
     <div v-if="chatStore.multiSelect" class="ml-ms-bar">
       <button class="ml-ms-cancel" @click="chatStore.toggleMultiSelect()">取消</button>
-      <span class="ml-ms-count">已选 {{ chatStore.selectedIds.size }} 条</span>
+      <span class="ml-ms-count" style="flex:1;text-align:center">已选 {{ chatStore.selectedIds.size }} 条</span>
       <button class="ml-ms-fwd" :disabled="!chatStore.selectedIds.size" @click="openMultiForward">逐条转发</button>
       <button class="ml-ms-merge" :disabled="!chatStore.selectedIds.size" @click="mergeForward">合并转发</button>
       <button class="ml-ms-del" :disabled="!chatStore.selectedIds.size" @click="chatStore.deleteSelected()">删除</button>
@@ -354,20 +354,21 @@ watch(() => chatStore.jumpMsgId, (msgId) => {
 .ml-check { width: 24px; flex-shrink: 0; display: flex; align-items: center; cursor: pointer; }
 .ml-msg-sel { background: rgba(7,193,96,0.08); border-radius: 6px; }
 .ml-ms-bar {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 10px 16px; background: var(--bg-dialog, #252529);
+  display: flex; align-items: center; gap: 6px;
+  padding: 8px 12px; background: var(--bg-dialog, #252529);
   border-top: 1px solid var(--border, #3a3c44);
   flex-shrink: 0;
 }
-.ml-ms-cancel { background: none; border: none; color: var(--text-muted, #888); font-size: 13px; cursor: pointer; }
-.ml-ms-count { font-size: 13px; color: var(--text-primary, #e8e8ea); }
-.ml-ms-fwd { padding: 6px 14px; border: none; border-radius: 4px; background: var(--accent, #f7931e); color: #fff; font-size: 13px; cursor: pointer; }
-.ml-ms-fwd:disabled { opacity: 0.4; cursor: not-allowed; }
-.ml-ms-merge { padding: 6px 14px; border: none; border-radius: 4px; background: var(--accent, #f7931e); color: #fff; font-size: 13px; cursor: pointer; opacity: 0.8; }
-.ml-ms-merge:disabled { opacity: 0.4; cursor: not-allowed; }
+.ml-ms-cancel, .ml-ms-fwd, .ml-ms-merge, .ml-ms-del {
+  padding: 5px 10px; border: none; border-radius: 4px; font-size: 12px; cursor: pointer; white-space: nowrap;
+}
+.ml-ms-cancel { background: none; color: var(--text-muted, #888); }
+.ml-ms-fwd { background: var(--accent, #f7931e); color: #fff; }
+.ml-ms-merge { background: var(--accent, #f7931e); color: #fff; opacity: 0.8; }
 .ml-ms-merge:hover { opacity: 1; }
-.ml-ms-del { padding: 6px 20px; border: none; border-radius: 4px; background: #e74c3c; color: #fff; font-size: 13px; cursor: pointer; }
-.ml-ms-del:disabled { opacity: 0.4; cursor: not-allowed; }
+.ml-ms-del { background: #e74c3c; color: #fff; }
+.ml-ms-fwd:disabled, .ml-ms-merge:disabled, .ml-ms-del:disabled { opacity: 0.4; cursor: not-allowed; }
+.ml-ms-count { font-size: 12px; color: var(--text-primary, #e8e8ea); flex: 1; text-align: center; }
 .fw-overlay { position: fixed; inset: 0; z-index: 300; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; }
 .fw-dialog { width: 300px; max-height: 400px; border-radius: 12px; background: var(--bg-dialog, #252529); overflow: hidden; display: flex; flex-direction: column; }
 .fw-hd { padding: 14px 18px; font-size: 14px; font-weight: 600; color: var(--text-primary, #e8e8ea); border-bottom: 1px solid var(--border, #3a3c44); }
