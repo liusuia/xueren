@@ -24,6 +24,9 @@
         </div>
       </div>
       <div class="cp-h-right">
+        <button v-if="chat.currentConv.targetType === 2" class="cp-h-btn" :title="muted ? '取消免打扰' : '免打扰'" @click="toggleMute">
+          <svg viewBox="0 0 24 24" width="18" height="18" :fill="muted ? '#f7931e' : 'currentColor'"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg>
+        </button>
         <button v-if="chat.currentConv.targetType === 2" class="cp-h-btn" @click="$emit('groupInfo')" title="群信息">
           <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></svg>
         </button>
@@ -103,6 +106,15 @@ import { computed, ref, watch, nextTick, onMounted } from 'vue'
 
 const chat = useChatStore()
 const groupStore = useGroupStore()
+const convStore = useConversationStore()
+const muted = computed(() => {
+  const cv = chat.currentConv
+  return cv ? convStore.isMuted(cv.targetType, cv.targetId) : false
+})
+function toggleMute() {
+  const cv = chat.currentConv
+  if (cv) convStore.setMuted(cv.targetType, cv.targetId, !muted.value)
+}
 const contactStore = useContactStore()
 const msgListRef = ref(null)
 const inputBarRef = ref(null)
