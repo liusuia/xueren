@@ -34,6 +34,39 @@ public class MomentController {
         return ApiResponse.ok(buildItems(momentRepo.findByUserIdOrderByCreatedAtDesc(userId)));
     }
 
+    @GetMapping("/notifications")
+    public ApiResponse<List<Map<String, Object>>> notifications() {
+        Long userId = AuthHolder.currentUserId();
+        List<Moment> myMoments = momentRepo.findByUserIdOrderByCreatedAtDesc(userId);
+        List<Map<String, Object>> list = new ArrayList<>();
+        for (Moment m : myMoments) {
+            for (MomentLike like : likeRepo.findByMomentId(m.getId())) {
+                if (like.getUserId().equals(userId)) continue;
+                User u = userRepo.findById(like.getUserId()).orElse(null);
+                Map<String, Object> item = new LinkedHashMap<>();
+                item.put("type", "like"); item.put("momentId", m.getId());
+                item.put("fromUserId", like.getUserId());
+                item.put("fromName", u != null ? (u.getNickname() != null ? u.getNickname() : u.getUsername()) : "");
+                item.put("content", m.getContent() != null && m.getContent().length() > 30 ? m.getContent().substring(0, 30) + "..." : m.getContent());
+                item.put("time", like.getCreatedAt() != null ? like.getCreatedAt() : java.time.LocalDateTime.now());
+                list.add(item);
+            }
+            for (MomentComment c : commentRepo.findByMomentIdOrderByCreatedAtAsc(m.getId())) {
+                if (c.getUserId().equals(userId)) continue;
+                User u = userRepo.findById(c.getUserId()).orElse(null);
+                Map<String, Object> item = new LinkedHashMap<>();
+                item.put("type", "comment"); item.put("momentId", m.getId());
+                item.put("fromUserId", c.getUserId());
+                item.put("fromName", u != null ? (u.getNickname() != null ? u.getNickname() : u.getUsername()) : "");
+                item.put("text", c.getContent()); item.put("time", c.getCreatedAt());
+                item.put("content", m.getContent() != null && m.getContent().length() > 30 ? m.getContent().substring(0, 30) + "..." : m.getContent());
+                list.add(item);
+            }
+        }
+        list.sort((a, b) -> ((java.time.LocalDateTime) b.get("time")).compareTo((java.time.LocalDateTime) a.get("time")));
+        return ApiResponse.ok(list.size() > 50 ? list.subList(0, 50) : list);
+    }
+
     @GetMapping("/new-count")
     public ApiResponse<Long> newCount(@RequestParam(required = false) Long since) {
         Long userId = AuthHolder.currentUserId();

@@ -88,6 +88,7 @@ export const momentApi = {
   timeline: () => http.get('/moments'),
   userTimeline: (userId) => http.get(`/moments/user/${userId}`),
   newCount: (since) => http.get('/moments/new-count', { params: since ? { since } : {} }),
+  notifications: () => http.get('/moments/notifications'),
   create: (data) => http.post('/moments', data),
   like: (id) => http.post(`/moments/${id}/like`),
   comment: (id, content) => http.post(`/moments/${id}/comment`, { content })

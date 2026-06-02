@@ -8,6 +8,9 @@
             <button class="mp-nav-btn" @click="goBack">{{ viewing ? '← 返回' : '← 关闭' }}</button>
             <span class="mp-nav-title">{{ viewing ? (viewName+'的朋友圈') : '朋友圈' }}</span>
             <button v-if="!viewing || viewId===auth.user?.id" class="mp-nav-btn" @click="showPost=true" title="发动态">📷</button>
+            <button class="mp-nav-btn" @click="showNotifs=true;loadNotifs()" title="消息">
+              🔔<span v-if="notifCount" class="mp-nav-badge">{{ notifCount > 99 ? '99+' : notifCount }}</span>
+            </button>
             <button class="mp-nav-btn" @click="refresh" :disabled="refreshing">↻</button>
           </div>
           <!-- 封面 -->
@@ -55,6 +58,25 @@
       </div>
     </Transition>
   </Teleport>
+  <!-- 通知弹窗 -->
+  <Teleport to="body">
+    <div v-if="showNotifs" class="mp-notif-overlay" @click.self="showNotifs=false">
+      <div class="mp-notif-dlg">
+        <div class="mp-notif-hd">消息<span class="mp-notif-close" @click="showNotifs=false">×</span></div>
+        <div class="mp-notif-list">
+          <div v-if="!notifs.length" class="mp-notif-empty">暂无消息</div>
+          <div v-for="n in notifs" :key="n.type+n.momentId+n.fromUserId" class="mp-notif-item" @click="showNotifs=false;goToMoment(n.momentId)">
+            <Avatar :src="n.fromAvatar" :name="n.fromName" :size="36" />
+            <div class="mp-notif-body">
+              <div class="mp-notif-text"><b>{{ n.fromName }}</b> {{ n.type === 'like' ? '赞了你的动态' : '评论了你的动态: '+n.text }}</div>
+              <div class="mp-notif-sub">{{ n.content || '' }}</div>
+              <div class="mp-notif-time">{{ fmt(n.time) }}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </Teleport>
   <!-- 发表 -->
   <Teleport to="body">
     <div v-if="showPost" class="mp-post-overlay">
@@ -83,6 +105,12 @@ const items = ref([])
 const loading = ref(false)
 const refreshing = ref(false)
 const showPost = ref(false)
+const showNotifs = ref(false)
+const notifs = ref([])
+const notifCount = ref(0)
+
+async function loadNotifs() { try { notifs.value = (await momentApi.notifications()) || []; notifCount.value = 0 } catch {} }
+function goToMoment(mid) { /* 跳转到具体动态 */ }
 const postText = ref('')
 const postImgs = ref([])
 const coverUrl = ref(localStorage.getItem('xr-cover')||'')
@@ -182,4 +210,20 @@ async function doPost(){ if(!postText.value.trim()&&!postImgs.value.length)retur
 
 .mp-fade-enter-active,.mp-fade-leave-active{ transition:opacity 0.2s ease; }
 .mp-fade-enter-from,.mp-fade-leave-to{ opacity:0; }
+
+.mp-nav-badge{ position:absolute;top:-2px;right:-4px;min-width:16px;height:16px;line-height:16px;padding:0 4px;font-size:10px;font-weight:700;background:#e74c3c;color:#fff;border-radius:8px;text-align:center; }
+
+.mp-notif-overlay{ position:fixed;inset:0;z-index:600;background:rgba(0,0,0,0.4);display:flex;align-items:center;justify-content:center; }
+.mp-notif-dlg{ width:380px;max-height:500px;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,0.2);display:flex;flex-direction:column; }
+.mp-notif-hd{ display:flex;justify-content:space-between;padding:14px 18px;font-size:15px;font-weight:600;border-bottom:1px solid #eee; }
+.mp-notif-close{ cursor:pointer;font-size:20px;color:#999; }
+.mp-notif-list{ flex:1;overflow-y:auto; }
+.mp-notif-empty{ text-align:center;padding:48px;color:#ccc; }
+.mp-notif-item{ display:flex;gap:10px;padding:12px 16px;border-bottom:1px solid #f0f0f0;cursor:pointer;transition:background 0.1s; }
+.mp-notif-item:hover{ background:#fafafa; }
+.mp-notif-body{ flex:1;min-width:0; }
+.mp-notif-text{ font-size:13px;color:#333;line-height:1.4; }
+.mp-notif-text b{ color:#576b95; }
+.mp-notif-sub{ font-size:12px;color:#999;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
+.mp-notif-time{ font-size:11px;color:#bbb;margin-top:2px; }
 </style>

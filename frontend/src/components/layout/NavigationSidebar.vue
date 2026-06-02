@@ -82,8 +82,10 @@ defineEmits(['profile'])
 const momentBadge = ref(0)
 let momentTimer = null
 async function checkMoments() {
-  const since = localStorage.getItem('xr-moment-view') || ''
-  try { const c = await momentApi.newCount(since ? Number(since) : undefined); momentBadge.value = Number(c) || 0 } catch {}
+  try {
+    const notifs = await momentApi.notifications()
+    momentBadge.value = (notifs && notifs.length) ? notifs.length : 0
+  } catch {}
 }
 function onMomentsClick() {
   localStorage.setItem('xr-moment-view', String(Date.now()))
