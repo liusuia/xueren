@@ -69,6 +69,19 @@ public class MomentController {
         return ApiResponse.ok(m);
     }
 
+    @DeleteMapping("/{id}")
+    @Transactional
+    public ApiResponse<Void> delete(@PathVariable Long id) {
+        Moment m = momentRepo.findById(id).orElse(null);
+        if (m == null || !m.getUserId().equals(AuthHolder.currentUserId())) {
+            return ApiResponse.fail(403, "无权删除");
+        }
+        likeRepo.deleteAll(likeRepo.findByMomentId(id));
+        commentRepo.deleteAll(commentRepo.findByMomentIdOrderByCreatedAtAsc(id));
+        momentRepo.delete(m);
+        return ApiResponse.ok(null);
+    }
+
     @PostMapping("/{id}/like")
     @Transactional
     public ApiResponse<Void> like(@PathVariable Long id) {
