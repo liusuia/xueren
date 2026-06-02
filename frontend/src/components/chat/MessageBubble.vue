@@ -10,7 +10,7 @@
       <div class="mb-edit-hint">Enter 保存 · Esc 取消</div>
     </div>
     <!-- 文字消息 -->
-    <div v-else-if="msg.msgType === 1 || msg.msgType === 4" class="mb-text">
+    <div v-else-if="msg.msgType === 1 || msg.msgType === 4" class="mb-text" @dblclick="copyText(msg.content)">
       {{ msg.content }}
       <span v-if="msg.editedAt" class="mb-edited">已编辑</span>
     </div>
@@ -60,6 +60,10 @@ import RedPacketBubble from './RedPacketBubble.vue'
 const chat = useChatStore()
 const authStore = useAuthStore()
 const ui = useUiStore()
+
+function copyText(text) {
+  if (text) navigator.clipboard.writeText(text).catch(() => {})
+}
 
 const props = defineProps({
   msg: { type: Object, required: true },
