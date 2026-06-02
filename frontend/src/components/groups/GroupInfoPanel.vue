@@ -294,6 +294,7 @@ async function doInvite() {
   try { await groupStore.addMembers(groupStore.currentGroup.id, inviteList.value); success('邀请成功'); inviteList.value = []; showInvite.value = false } catch (e) { error(e.message) }
 }
 function onMemberCtx(e, member) {
+  console.log('[ctx] member right-click', member.userId, 'myRole:', auth.user?.id, 'ownerId:', groupStore.currentGroup?.ownerId)
   ctxMember = member; const items = []
   if (groupStore.currentGroup.ownerId === auth.user?.id) {
     items.push({ label: member.role === 2 ? '取消管理员' : '设为管理员', action: 'toggleAdmin' })
@@ -304,6 +305,7 @@ function onMemberCtx(e, member) {
     items.push({ label: muted ? '解除禁言' : '禁言', action: 'toggleMute' })
     items.push({ label: '移出群聊', action: 'remove', danger: true })
   }
+  console.log('[ctx] items:', items.length, items)
   if (!items.length) return
   ctxItems.value = items; ctxPos.value = { x: e.clientX, y: e.clientY }; ctxVisible.value = true
 }
