@@ -30,6 +30,8 @@
     <VoiceBubble v-else-if="msg.msgType === 8" :msg="msg" :isSelf="isSelf" />
     <!-- 位置消息 -->
     <LocationBubble v-else-if="msg.msgType === 9" :msg="msg" :isSelf="isSelf" />
+    <!-- 红包消息 -->
+    <RedPacketBubble v-else-if="msg.msgType === 10" :msg="msg" :isSelf="isSelf" />
     <!-- 名片消息 -->
     <div v-else-if="msg.msgType == 6 && cardData" class="mb-card" @click="openCard">
       <Avatar :src="cardData.avatar" :name="cardData.nickname || cardData.username" :size="36" />
@@ -54,6 +56,7 @@ import { useAuthStore } from '../../stores/auth'
 import { useUiStore } from '../../stores/ui'
 import VoiceBubble from './VoiceBubble.vue'
 import LocationBubble from './LocationBubble.vue'
+import RedPacketBubble from './RedPacketBubble.vue'
 const chat = useChatStore()
 const authStore = useAuthStore()
 const ui = useUiStore()

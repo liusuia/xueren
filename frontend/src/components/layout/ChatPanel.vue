@@ -73,6 +73,7 @@
       @sendImageUrl="onSendImageUrl"
       @sendVoice="onSendVoice"
       @sendLocation="onSendLocation"
+      @sendRedPacket="(id) => chat.sendMessage({ content: id, msgType: MSG_TYPE.RED_PACKET })"
     />
   </div>
 

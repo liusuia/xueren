@@ -28,6 +28,9 @@
       <button class="ib-tool-btn" @click="sendLocation" title="位置">
         <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
       </button>
+      <button class="ib-tool-btn" @click="showRedPacket=true" title="红包">
+        <span style="font-size:18px">🧧</span>
+      </button>
       <button class="ib-tool-btn" @click="triggerFile" title="文件">
         <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M16.5 6v11.5c0 2.21-1.79 4-4 4s-4-1.79-4-4V5c0-1.38 1.12-2.5 2.5-2.5s2.5 1.12 2.5 2.5v10.5c0 .55-.45 1-1 1s-1-.45-1-1V6H10v9.5c0 1.38 1.12 2.5 2.5 2.5s2.5-1.12 2.5-2.5V5c0-2.21-1.79-4-4-4S7 2.79 7 5v12.5c0 3.04 2.46 5.5 5.5 5.5s5.5-2.46 5.5-5.5V6h-1.5z"/></svg>
       </button>
@@ -47,6 +50,24 @@
 
     <input type="file" ref="imageInput" accept="image/*" @change="onImageChange" style="display:none" />
     <input type="file" ref="fileInput" @change="onFileChange" style="display:none" />
+
+    <!-- 红包弹窗 -->
+    <Teleport to="body">
+      <div v-if="showRedPacket" class="rp-dlg-overlay" @click.self="showRedPacket=false">
+        <div class="rp-dlg">
+          <div class="rp-dlg-hd">发红包</div>
+          <div class="rp-dlg-body">
+            <input v-model="rpAmount" class="rp-inp" placeholder="金额(元)" type="number" />
+            <input v-model="rpCount" class="rp-inp" placeholder="个数" type="number" />
+            <input v-model="rpMsg" class="rp-inp" placeholder="恭喜发财，大吉大利" />
+          </div>
+          <div class="rp-dlg-btns">
+            <button class="rp-dlg-cancel" @click="showRedPacket=false">取消</button>
+            <button class="rp-dlg-send" @click="sendRedPacket">塞钱进红包</button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
   </div>
 </template>
 
@@ -69,7 +90,27 @@ const props = defineProps({
   isGroup: { type: Boolean, default: false },
   members: { type: Array, default: () => [] }
 })
-const emit = defineEmits(['sendText', 'sendImage', 'sendFile', 'sendEmoji', 'sendImageUrl', 'sendVoice', 'sendLocation'])
+const emit = defineEmits(['sendText', 'sendImage', 'sendFile', 'sendEmoji', 'sendImageUrl', 'sendVoice', 'sendLocation', 'sendRedPacket'])
+const showRedPacket = ref(false)
+const rpAmount = ref('')
+const rpCount = ref('')
+const rpMsg = ref('')
+
+async function sendRedPacket() {
+  const amount = parseFloat(rpAmount.value)
+  const count = parseInt(rpCount.value)
+  if (!amount || amount <= 0 || !count || count <= 0) return
+  const cv = chat.currentConv
+  try {
+    const res = await http.post('/red-packet', { amount, count, chatType: cv.targetType, targetId: cv.targetId, message: rpMsg.value || '恭喜发财，大吉大利' })
+    const packet = res?.data || res
+    if (packet) {
+      emit('sendRedPacket', String(packet.id))
+      showRedPacket.value = false
+      rpAmount.value = ''; rpCount.value = ''; rpMsg.value = ''
+    }
+  } catch {}
+}
 
 // 录音
 const isRecording = ref(false)
@@ -352,6 +393,15 @@ function onFileChange(e) { const f = e.target.files[0]; if (f) { emit('sendFile'
 .ib-recording { flex: 1; display: flex; align-items: center; gap: 8px; padding: 8px 12px; font-size: 13px; color: #e74c3c; }
 .ib-rec-dot { width: 8px; height: 8px; border-radius: 50%; background: #e74c3c; animation: ib-blink 0.5s infinite; }
 @keyframes ib-blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+.rp-dlg-overlay { position: fixed; inset: 0; z-index: 500; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; }
+.rp-dlg { width: 300px; background: #fff; border-radius: 12px; overflow: hidden; }
+.rp-dlg-hd { background: #f85b3a; color: #fff; text-align: center; padding: 16px; font-size: 18px; font-weight: 600; }
+.rp-dlg-body { padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+.rp-inp { width: 100%; border: 1px solid #ddd; border-radius: 6px; padding: 8px 12px; font-size: 14px; outline: none; }
+.rp-inp:focus { border-color: #f85b3a; }
+.rp-dlg-btns { display: flex; border-top: 1px solid #eee; }
+.rp-dlg-cancel { flex: 1; padding: 12px; border: none; background: #f5f5f5; color: #666; font-size: 14px; cursor: pointer; }
+.rp-dlg-send { flex: 2; padding: 12px; border: none; background: #f85b3a; color: #fff; font-size: 14px; font-weight: 600; cursor: pointer; }
 .ib-send {
   padding: 6px 20px; border: none; border-radius: 4px;
   background: var(--bg-input, #2e3038); color: var(--text-muted, #888);

@@ -25,6 +25,7 @@ public final class Constants {
     public static final int MSG_STICKER = 7;
     public static final int MSG_VOICE = 8;
     public static final int MSG_LOCATION = 9;
+    public static final int MSG_RED_PACKET = 10;
 
     public static final int GROUP_ROLE_OWNER = 1;
     public static final int GROUP_ROLE_ADMIN = 2;

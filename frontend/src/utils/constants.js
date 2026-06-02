@@ -3,7 +3,7 @@ export const CHAT_TYPE = { SINGLE: 1, GROUP: 2 }
 // 目标类型
 export const TARGET_TYPE = { USER: 1, GROUP: 2 }
 // 消息类型
-export const MSG_TYPE = { TEXT: 1, IMAGE: 2, FILE: 3, EMOJI: 4, SYSTEM: 5, CONTACT_CARD: 6, STICKER: 7, VOICE: 8, LOCATION: 9 }
+export const MSG_TYPE = { TEXT: 1, IMAGE: 2, FILE: 3, EMOJI: 4, SYSTEM: 5, CONTACT_CARD: 6, STICKER: 7, VOICE: 8, LOCATION: 9, RED_PACKET: 10 }
 // 好友状态
 export const FRIEND_STATUS = { PENDING: 0, ACCEPTED: 1, REJECTED: 2, BLOCKED: 3 }
 // 群成员角色

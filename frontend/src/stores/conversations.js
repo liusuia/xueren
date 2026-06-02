@@ -141,6 +141,7 @@ export const useConversationStore = defineStore('conversations', () => {
     else if (msg.msgType === 7) content = '[表情]'
     else if (msg.msgType === 8) content = '[语音]'
     else if (msg.msgType === 9) content = '[位置]'
+    else if (msg.msgType === 10) content = '[红包]'
     else if (msg.msgType === 3) content = '[文件]'
     else if (msg.msgType === 5) content = '[系统消息]'
     else content = msg.content || ''
