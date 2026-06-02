@@ -15,8 +15,9 @@
         <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
         <span v-if="pendingCount > 0" class="nav-badge nav-badge-friend">{{ pendingCount > 99 ? '99+' : pendingCount }}</span>
       </button>
-      <button class="nav-btn" :class="{ active: ui.activeTab === 'moments' }" @click="ui.setActiveTab('moments')" title="朋友圈">
+      <button class="nav-btn" :class="{ active: ui.activeTab === 'moments' }" @click="onMomentsClick" title="朋友圈">
         <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+        <span v-if="momentBadge" class="nav-badge nav-badge-friend">{{ momentBadge > 99 ? '99+' : momentBadge }}</span>
       </button>
       <button class="nav-btn" :class="{ active: ui.activeTab === 'favorites' }" @click="ui.setActiveTab('favorites')" title="收藏">
         <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
@@ -54,6 +55,8 @@ import { useConversationStore } from '../../stores/conversations'
 import { useContactStore } from '../../stores/contacts'
 import { useGroupStore } from '../../stores/groups'
 import { useDesktopNotify } from '../../composables/useDesktopNotify'
+import { momentApi } from '../../api/endpoints'
+import { onMounted, onUnmounted, ref } from 'vue'
 
 const auth = useAuthStore()
 const groupStore = useGroupStore()
@@ -74,6 +77,21 @@ const pendingCount = computed(() => {
 })
 
 defineEmits(['profile'])
+
+// 朋友圈红点
+const momentBadge = ref(0)
+let momentTimer = null
+async function checkMoments() {
+  const since = localStorage.getItem('xr-moment-view') || ''
+  try { const c = await momentApi.newCount(since ? Number(since) : undefined); momentBadge.value = Number(c) || 0 } catch {}
+}
+function onMomentsClick() {
+  localStorage.setItem('xr-moment-view', String(Date.now()))
+  momentBadge.value = 0
+  ui.setActiveTab('moments')
+}
+onMounted(() => { checkMoments(); momentTimer = setInterval(checkMoments, 30000) })
+onUnmounted(() => clearInterval(momentTimer))
 </script>
 
 <style scoped>

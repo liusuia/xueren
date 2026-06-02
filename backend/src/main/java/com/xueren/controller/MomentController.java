@@ -34,6 +34,18 @@ public class MomentController {
         return ApiResponse.ok(buildItems(momentRepo.findByUserIdOrderByCreatedAtDesc(userId)));
     }
 
+    @GetMapping("/new-count")
+    public ApiResponse<Long> newCount(@RequestParam(required = false) Long since) {
+        Long userId = AuthHolder.currentUserId();
+        List<Long> friendIds = friendRepo.findByUserIdAndStatus(userId, 1).stream()
+                .map(f -> f.getFriendId()).collect(java.util.stream.Collectors.toList());
+        friendIds.add(userId);
+        long count = momentRepo.findByUserIdInOrderByCreatedAtDesc(friendIds).stream()
+                .filter(m -> since == null || m.getCreatedAt() != null && m.getCreatedAt().atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli() > since)
+                .count();
+        return ApiResponse.ok(count);
+    }
+
     @GetMapping
     public ApiResponse<List<Map<String, Object>>> timeline() {
         Long userId = AuthHolder.currentUserId();
