@@ -77,10 +77,6 @@ import FriendChatInfo from '../contacts/FriendChatInfo.vue'
 import ChatSearch from '../chat/ChatSearch.vue'
 import ConfirmDialog from '../common/ConfirmDialog.vue'
 import MomentsPage from '../../views/MomentsPage.vue'
-
-const showMoments = ref(false)
-watch(() => ui.activeTab, (v) => { if (v === 'moments') showMoments.value = true })
-function closeMoments() { showMoments.value = false; ui.setActiveTab('chat') }
 import { useConfirm } from '../../composables/useConfirm'
 import { playMessageSound } from '../../utils/sound'
 
@@ -88,6 +84,10 @@ const bp = useBreakpoint()
 const deskNotify = useDesktopNotify()
 const cfm = useConfirm()
 const ui = useUiStore()
+
+const showMoments = ref(false)
+watch(() => ui.activeTab, (v) => { if (v === 'moments') showMoments.value = true })
+function closeMoments() { showMoments.value = false; ui.setActiveTab('chat') }
 const auth = useAuthStore()
 const chat = useChatStore()
 const convStore = useConversationStore()
