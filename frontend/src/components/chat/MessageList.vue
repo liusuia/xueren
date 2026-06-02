@@ -325,6 +325,7 @@ watch(() => chatStore.jumpMsgId, (msgId) => {
   padding: 8px 0;
 }
 .ml-inner { padding: 0 20px; }
+.ml-inner > * { content-visibility: auto; contain-intrinsic-size: 60px; }
 .ml-date-sep {
   text-align: center; margin: 16px 0;
 }

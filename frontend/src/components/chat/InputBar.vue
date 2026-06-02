@@ -43,7 +43,7 @@
         <span>录音中 {{ recordSeconds }}s 松开发送</span>
       </div>
       <textarea v-else ref="inputRef" v-model="text" class="ib-textarea" :placeholder="placeholder" rows="1" @keydown.enter.exact="onEnter" @input="onInput" @paste="onPaste"></textarea>
-      <button class="ib-send" :class="{ ready: text.trim() }" @click="onSend" :disabled="!text.trim()">发送</button>
+      <button class="ib-send" :class="{ ready: text.trim() }" @click="onSend" :disabled="!text.trim() || chat.sending">{{ chat.sending ? '...' : '发送' }}</button>
     </div>
 
     <EmojiPicker v-if="showEmoji" @select="onEmoji" @selectEmoji="onCustomEmoji" />
