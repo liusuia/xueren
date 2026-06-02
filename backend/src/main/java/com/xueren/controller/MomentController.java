@@ -4,6 +4,7 @@ import com.xueren.common.ApiResponse;
 import com.xueren.entity.*;
 import com.xueren.repository.*;
 import com.xueren.security.AuthHolder;
+import jakarta.persistence.EntityManager;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
@@ -18,11 +19,14 @@ public class MomentController {
     private final MomentCommentRepository commentRepo;
     private final FriendRepository friendRepo;
     private final UserRepository userRepo;
+    private final EntityManager em;
 
     public MomentController(MomentRepository momentRepo, MomentLikeRepository likeRepo,
-                            MomentCommentRepository commentRepo, FriendRepository friendRepo, UserRepository userRepo) {
+                            MomentCommentRepository commentRepo, FriendRepository friendRepo, UserRepository userRepo,
+                            EntityManager em) {
         this.momentRepo = momentRepo; this.likeRepo = likeRepo;
         this.commentRepo = commentRepo; this.friendRepo = friendRepo; this.userRepo = userRepo;
+        this.em = em;
     }
 
     @GetMapping("/user/{userId}")
@@ -75,7 +79,9 @@ public class MomentController {
         m.setContent(body.getOrDefault("content", ""));
         m.setImages(body.getOrDefault("images", "[]"));
         momentRepo.saveAndFlush(m);
-        return ApiResponse.ok(momentRepo.findById(m.getId()).orElse(m));
+        // 绕过 Hibernate 一级缓存拿到数据库实际值
+        return ApiResponse.ok(em.createNativeQuery("SELECT * FROM moment WHERE id=?", Moment.class)
+                .setParameter(1, m.getId()).getSingleResult());
     }
 
     @DeleteMapping("/{id}")
