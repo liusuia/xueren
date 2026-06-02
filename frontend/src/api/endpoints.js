@@ -86,6 +86,7 @@ export const favoriteApi = {
 
 export const momentApi = {
   timeline: () => http.get('/moments'),
+  userTimeline: (userId) => http.get(`/moments/user/${userId}`),
   create: (data) => http.post('/moments', data),
   like: (id) => http.post(`/moments/${id}/like`),
   comment: (id, content) => http.post(`/moments/${id}/comment`, { content })

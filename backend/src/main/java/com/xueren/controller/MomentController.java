@@ -25,13 +25,22 @@ public class MomentController {
         this.commentRepo = commentRepo; this.friendRepo = friendRepo; this.userRepo = userRepo;
     }
 
+    @GetMapping("/user/{userId}")
+    public ApiResponse<List<Map<String, Object>>> userMoments(@PathVariable Long userId) {
+        return ApiResponse.ok(buildItems(momentRepo.findByUserIdOrderByCreatedAtDesc(userId)));
+    }
+
     @GetMapping
     public ApiResponse<List<Map<String, Object>>> timeline() {
         Long userId = AuthHolder.currentUserId();
         List<Long> friendIds = friendRepo.findByUserIdAndStatus(userId, 1).stream()
                 .map(f -> f.getFriendId()).collect(java.util.stream.Collectors.toList());
         friendIds.add(userId);
-        List<Moment> moments = momentRepo.findByUserIdInOrderByCreatedAtDesc(friendIds);
+        return ApiResponse.ok(buildItems(momentRepo.findByUserIdInOrderByCreatedAtDesc(friendIds)));
+    }
+
+    private List<Map<String, Object>> buildItems(List<Moment> moments) {
+        Long userId = AuthHolder.currentUserId();
         List<Map<String, Object>> result = new ArrayList<>();
         for (Moment m : moments) {
             Map<String, Object> item = new LinkedHashMap<>();
@@ -57,7 +66,7 @@ public class MomentController {
             }).toList());
             result.add(item);
         }
-        return ApiResponse.ok(result);
+        return result;
     }
 
     @PostMapping
