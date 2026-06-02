@@ -8,7 +8,6 @@
             <button class="mp-nav-btn" @click="goBack">←</button>
             <span class="mp-nav-title">{{ viewing ? (viewName+'的朋友圈') : '' }}</span>
             <div class="mp-nav-actions">
-              <button v-if="!viewing || viewId===auth.user?.id" class="mp-nav-btn" @click="showPost=true" title="发动态">📷</button>
               <button class="mp-nav-btn" @click="showNotifs=true;loadNotifs()" title="消息">
                 🔔<span v-if="notifCount" class="mp-nav-badge">{{ notifCount > 99 ? '99+' : notifCount }}</span>
               </button>
@@ -27,6 +26,11 @@
           </div>
           <!-- 时间线 -->
           <div class="mp-body">
+            <div v-if="!viewing || viewId===auth.user?.id" class="mp-post-card" @click="showPost=true">
+              <Avatar :src="auth.user?.avatar" :name="auth.user?.nickname||auth.user?.username" :size="36" />
+              <span class="mp-post-card-text">这一刻的想法...</span>
+              <span class="mp-post-card-cam">📷</span>
+            </div>
             <LoadingSpinner :visible="loading" />
             <div v-if="!loading && !items.length" class="mp-empty">— 暂无动态 —</div>
             <template v-for="(m,i) in items" :key="m.id">
@@ -169,6 +173,10 @@ async function doPost(){ if(!postText.value.trim()&&!postImgs.value.length)retur
 .mp-me-name{ font-size:15px;font-weight:600;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,0.5); }
 .mp-me-av{ border:2px solid rgba(255,255,255,0.25);border-radius:8px; }
 .mp-body{ flex:1;overflow-y:auto; }
+.mp-post-card{ display:flex;align-items:center;gap:10px;padding:12px 20px;border-bottom:1px solid #f0f0f0;cursor:pointer;transition:background 0.1s; }
+.mp-post-card:hover{ background:#fafafa; }
+.mp-post-card-text{ flex:1;font-size:14px;color:#b0b0b0; }
+.mp-post-card-cam{ font-size:20px; }
 .mp-empty{ text-align:center;padding:80px 0;color:#ccc;font-size:14px; }
 .mp-day-label{ text-align:center;padding:8px;font-size:12px;color:#b0b0b0;background:#f8f8f8;border-bottom:1px solid #eee;position:sticky;top:0;z-index:2; }
 .mp-card{ display:flex;gap:12px;padding:12px 20px;border-bottom:1px solid #f0f0f0;transition:background 0.1s; }
