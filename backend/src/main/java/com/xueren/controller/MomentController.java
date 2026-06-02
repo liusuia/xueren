@@ -43,6 +43,7 @@ public class MomentController {
                 item.put("type", "like"); item.put("momentId", m.getId());
                 item.put("fromUserId", like.getUserId());
                 item.put("fromName", u != null ? (u.getNickname() != null ? u.getNickname() : u.getUsername()) : "");
+                item.put("fromAvatar", u != null ? u.getAvatar() : null);
                 item.put("content", m.getContent() != null && m.getContent().length() > 30 ? m.getContent().substring(0, 30) + "..." : m.getContent());
                 item.put("time", like.getCreatedAt() != null ? like.getCreatedAt() : java.time.LocalDateTime.now());
                 list.add(item);
@@ -54,6 +55,7 @@ public class MomentController {
                 item.put("type", "comment"); item.put("momentId", m.getId());
                 item.put("fromUserId", c.getUserId());
                 item.put("fromName", u != null ? (u.getNickname() != null ? u.getNickname() : u.getUsername()) : "");
+                item.put("fromAvatar", u != null ? u.getAvatar() : null);
                 item.put("text", c.getContent()); item.put("time", c.getCreatedAt() != null ? c.getCreatedAt() : java.time.LocalDateTime.now());
                 item.put("content", m.getContent() != null && m.getContent().length() > 30 ? m.getContent().substring(0, 30) + "..." : m.getContent());
                 list.add(item);
