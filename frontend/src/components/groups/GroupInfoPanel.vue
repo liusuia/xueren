@@ -307,10 +307,16 @@ async function doInvite() {
 }
 function onMemberCtx(e, member) {
   ctxMember = member; const items = []
+  // 基础操作：所有人可见
+  if (member.userId !== auth.user?.id) {
+    items.push({ label: '查看资料', action: 'viewProfile' })
+  }
+  // 群主专有
   if (groupStore.currentGroup.ownerId === auth.user?.id) {
     items.push({ label: member.role === 2 ? '取消管理员' : '设为管理员', action: 'toggleAdmin' })
     items.push({ label: '转让群主', action: 'transferOwner' })
   }
+  // 管理员专有（操作普通成员）
   if (groupStore.isAdmin(groupStore.currentGroup.id) && member.role === 3) {
     const muted = !!(member.isMuted)
     items.push({ label: muted ? '解除禁言' : '禁言', action: 'toggleMute' })
@@ -325,6 +331,7 @@ async function onCtxAction(item) {
   else if (item.action === 'transferOwner') { await groupStore.transferOwner(gid, ctxMember.userId); success('已转让'); emit('close') }
   else if (item.action === 'toggleMute') { await groupStore.muteMember(gid, ctxMember.userId, !ctxMember.isMuted); success('已更新') }
   else if (item.action === 'remove') { await groupStore.removeMember(gid, ctxMember.userId); success('已移出') }
+  else if (item.action === 'viewProfile') { emit('showUserInfo', ctxMember.userId) }
 }
 async function onQuit() { if (await cfm.danger('确定退出群聊？', { confirmText: '退出' })) { await groupStore.quitGroup(groupStore.currentGroup.id); emit('close') } }
 async function onDismiss() { if (await cfm.danger('确定解散群聊？此操作不可撤销。', { confirmText: '解散' })) { await groupStore.dismissGroup(groupStore.currentGroup.id); emit('close') } }
