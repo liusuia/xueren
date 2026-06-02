@@ -79,9 +79,8 @@ public class MomentController {
         m.setContent(body.getOrDefault("content", ""));
         m.setImages(body.getOrDefault("images", "[]"));
         momentRepo.saveAndFlush(m);
-        // 绕过 Hibernate 一级缓存拿到数据库实际值
-        return ApiResponse.ok(em.createNativeQuery("SELECT * FROM moment WHERE id=?", Moment.class)
-                .setParameter(1, m.getId()).getSingleResult());
+        em.refresh(m); // 从数据库重新加载以获取 generated createdAt
+        return ApiResponse.ok(m);
     }
 
     @DeleteMapping("/{id}")
