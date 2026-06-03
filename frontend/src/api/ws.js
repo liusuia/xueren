@@ -7,6 +7,12 @@ let reconnectTimer = null
 let onStateChangeList = []
 
 function getWsUrl() {
+  const server = localStorage.getItem('xr-server') || ''
+  if (server) {
+    const isSecure = server.startsWith('https')
+    const host = server.replace(/^https?:\/\//, '')
+    return `${isSecure ? 'wss' : 'ws'}://${host}/ws`
+  }
   const hostname = window.location.hostname
   const isLan = /^\d+\.\d+\.\d+\.\d+$/.test(hostname)
   if (hostname === 'localhost' || hostname === '127.0.0.1') {

@@ -1,0 +1,24 @@
+appId: com.qingyu.app
+productName: 轻语
+copyright: Copyright © 2026
+directories:
+  output: release
+  buildResources: electron
+files:
+  - dist/**/*
+  - electron/**/*
+win:
+  target:
+    - target: nsis
+      arch: [x64]
+  icon: electron/icon.png
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  shortcutName: 轻语
+extraResources:
+  - from: electron/
+    to: electron/
+    filter:
+      - "*.png"

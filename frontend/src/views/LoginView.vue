@@ -95,6 +95,9 @@
         </div>
       </div>
 
+      <div class="server-row">
+        <input v-model="serverHost" class="server-input" placeholder="服务器地址 (留空=本地)" @change="onServerChange" />
+      </div>
       <div class="login-footer">
         <span>轻语 &mdash; 即时通讯</span>
       </div>
@@ -119,6 +122,15 @@ const loginForm = ref({ username: '', password: '' })
 const registerForm = ref({ email: '', password: '', nickname: '' })
 const forgotStep = ref(0) // 0=hidden, 1=输入邮箱, 2=输入验证码+新密码
 const forgotForm = ref({ email: '', code: '', password: '' })
+
+const serverHost = ref(localStorage.getItem('xr-server') || '')
+function onServerChange() {
+  const val = serverHost.value.trim()
+  if (val) localStorage.setItem('xr-server', val)
+  else localStorage.removeItem('xr-server')
+  // 刷新 axios baseURL
+  window.location.reload()
+}
 
 const theme = ref(localStorage.getItem('xr-theme') || 'dark')
 function applyTheme(val) { document.documentElement.setAttribute('data-theme', val) }
@@ -255,7 +267,11 @@ async function onReset() {
   border-radius: 50%; animation: spin 0.6s linear infinite;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
-.login-footer { padding: 22px 24px 28px; text-align: center; font-size: 11px; color: var(--text-muted, #777); letter-spacing: 1px; }
+.server-row { padding: 0 28px 8px; }
+.server-input { width: 100%; border: 1px solid var(--border-input, #3d3d42); border-radius: 8px; padding: 8px 12px; font-size: 12px; background: var(--bg-input, #2e2e32); color: var(--text-muted, #999); outline: none; text-align: center; }
+.server-input:focus { border-color: var(--accent, #f7931e); color: var(--text-primary, #e8e8ea); }
+.server-input::placeholder { color: var(--text-placeholder, #555); }
+.login-footer { padding: 16px 24px 28px; text-align: center; font-size: 11px; color: var(--text-muted, #777); letter-spacing: 1px; }
 .login-logo { overflow: hidden; }
 .login-logo-img { width: 100%; height: 100%; object-fit: cover; }
 .forgot-link { text-align: right; font-size: 12px; color: var(--text-muted, #999); cursor: pointer; margin-top: 4px; }

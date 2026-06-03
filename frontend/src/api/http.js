@@ -1,8 +1,14 @@
 import axios from 'axios'
 import { useAuthStore } from '../stores/auth'
 
+function getBaseURL() {
+  const host = localStorage.getItem('xr-server') || ''
+  if (host) return host + '/api'
+  return '/api'
+}
+
 const http = axios.create({
-  baseURL: '/api',
+  baseURL: getBaseURL(),
   timeout: 15000,
   headers: {
     'Content-Type': 'application/json;charset=utf-8'

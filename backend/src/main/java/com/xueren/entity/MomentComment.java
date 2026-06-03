@@ -16,6 +16,6 @@ public class MomentComment {
     private Long userId;
     @Column(length = 500, nullable = false)
     private String content;
-    @Column(name = "created_at", insertable = false, updatable = false)
+    @Column(name = "created_at")
     private LocalDateTime createdAt;
 }

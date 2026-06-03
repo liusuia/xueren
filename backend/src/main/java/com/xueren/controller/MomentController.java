@@ -162,7 +162,7 @@ public class MomentController {
         if (likeRepo.existsByMomentIdAndUserId(id, userId)) {
             likeRepo.deleteByMomentIdAndUserId(id, userId);
         } else {
-            MomentLike l = new MomentLike(); l.setMomentId(id); l.setUserId(userId); likeRepo.save(l);
+            MomentLike l = new MomentLike(); l.setMomentId(id); l.setUserId(userId); l.setCreatedAt(java.time.LocalDateTime.now()); likeRepo.save(l);
         }
         return ApiResponse.ok(null);
     }
@@ -171,6 +171,7 @@ public class MomentController {
     public ApiResponse<MomentComment> comment(@PathVariable Long id, @RequestBody Map<String, String> body) {
         MomentComment c = new MomentComment(); c.setMomentId(id);
         c.setUserId(AuthHolder.currentUserId()); c.setContent(body.get("content"));
+        c.setCreatedAt(java.time.LocalDateTime.now());
         commentRepo.save(c);
         return ApiResponse.ok(c);
     }

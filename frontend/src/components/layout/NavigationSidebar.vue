@@ -16,7 +16,7 @@
         <span v-if="pendingCount > 0" class="nav-badge nav-badge-friend">{{ pendingCount > 99 ? '99+' : pendingCount }}</span>
       </button>
       <button class="nav-btn" :class="{ active: ui.activeTab === 'moments' }" @click="onMomentsClick" title="朋友圈">
-        <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none"/></svg>
         <span v-if="momentBadge" class="nav-badge nav-badge-friend">{{ momentBadge > 99 ? '99+' : momentBadge }}</span>
       </button>
       <button class="nav-btn" :class="{ active: ui.activeTab === 'favorites' }" @click="ui.setActiveTab('favorites')" title="收藏">
@@ -78,13 +78,21 @@ const pendingCount = computed(() => {
 
 defineEmits(['profile'])
 
-// 朋友圈红点
+// 朋友圈红点（只统计上次查看之后的新通知）
 const momentBadge = ref(0)
 let momentTimer = null
+
+function toTimestamp(t) {
+  if (!t) return 0
+  if (Array.isArray(t)) return new Date(t[0], t[1] - 1, t[2], t[3] || 0, t[4] || 0, t[5] || 0).getTime()
+  return new Date(t).getTime()
+}
+
 async function checkMoments() {
   try {
     const notifs = await momentApi.notifications()
-    momentBadge.value = (notifs && notifs.length) ? notifs.length : 0
+    const lastView = parseInt(localStorage.getItem('xr-moment-view') || '0', 10)
+    momentBadge.value = (notifs || []).filter(n => toTimestamp(n.time) > lastView).length
   } catch {}
 }
 function onMomentsClick() {
